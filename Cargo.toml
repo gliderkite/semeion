@@ -1,6 +1,6 @@
 [package]
 name = "semeion"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Marco Conte <gliderkite@gmail.com>"]
 edition = "2018"
 description = "A generic 2D environment simulator"

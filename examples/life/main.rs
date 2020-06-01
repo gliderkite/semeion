@@ -32,36 +32,21 @@ mod entity;
 mod env;
 mod pattern;
 
-struct GameState {
+struct GameState<'a> {
     // the environment where the simulation takes place
-    env: Environment<Id, Kind, Context, graphics::DrawParam, GameError>,
+    env: Environment<'a, Id, Kind, Context, graphics::DrawParam, GameError>,
     // shared cache for already visited dead cells locations per generation
     visited: Rc<RefCell<HashSet<Location>>>,
 }
 
-impl GameState {
+impl<'a> GameState<'a> {
     /// Constructs the game state by populating the environment with the initial
     /// entities.
-    fn new(ctx: &mut Context) -> Result<Self, GameError> {
-        let mut game = Self {
+    fn new() -> Result<Self, GameError> {
+        Ok(Self {
             env: Environment::new(env::bounds()),
             visited: Rc::new(RefCell::new(HashSet::new())),
-        };
-
-        // a grid as a static entity used only for drawing purposes in order to
-        // show the white grid cells borders
-        game.env.insert(Grid::new(grid::mesh(ctx)?));
-
-        // add a list of alive Cells from a predefined pattern
-        for location in Pattern::diehard() {
-            game.env.insert(Cell::new(
-                location,
-                cell::mesh(ctx)?,
-                Rc::downgrade(&game.visited),
-            ));
-        }
-
-        Ok(game)
+        })
     }
 
     /// Draw stats in the bottom-right corner of the screen.
@@ -77,9 +62,9 @@ impl GameState {
     }
 }
 
-impl event::EventHandler for GameState {
+impl<'a> event::EventHandler for GameState<'a> {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        while timer::check_update_time(ctx, 10) {
+        while timer::check_update_time(ctx, 60) {
             self.visited.borrow_mut().clear();
             self.env.nextgen()?;
         }
@@ -104,7 +89,20 @@ pub fn main() -> GameResult {
         .window_mode(WindowMode::default().dimensions(env::WIDTH, env::HEIGHT))
         .build()?;
 
-    let state = &mut GameState::new(ctx)?;
-    event::run(ctx, events_loop, state)?;
+    // the cached Cell mesh, shared between all cells as immutable reference
+    let cell_mesh = cell::mesh(ctx)?;
+
+    let mut game = GameState::new()?;
+    game.env.insert(Grid::new(grid::mesh(ctx)?));
+
+    for location in Pattern::acorn() {
+        game.env.insert(Cell::new(
+            location,
+            &cell_mesh,
+            Rc::downgrade(&game.visited),
+        ));
+    }
+
+    event::run(ctx, events_loop, &mut game)?;
     Ok(())
 }

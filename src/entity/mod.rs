@@ -5,30 +5,43 @@ use std::rc::{Rc, Weak};
 
 use super::*;
 
+pub use lifespan::*;
 pub use offspring::*;
 
+pub mod lifespan;
 pub mod offspring;
 
 /// The Entity Trait type alias.
-pub(crate) type Trait<I, K, C, T, E> =
-    dyn Entity<Id = I, Kind = K, Context = C, Transform = T, Error = E>;
+pub(crate) type Trait<'e, I, K, C, T, E> = dyn Entity<'e, Id = I, Kind = K, Context = C, Transform = T, Error = E>
+    + 'e;
 
 /// The RefCell type alias that owns an Entity Trait.
-pub(crate) type RefCell<I, K, C, T, E> = cell::RefCell<Trait<I, K, C, T, E>>;
+pub(crate) type RefCell<'e, I, K, C, T, E> =
+    cell::RefCell<Trait<'e, I, K, C, T, E>>;
 
 /// Strong reference to an Entity with interior mutability.
-pub(crate) type EntityStrongRef<I, K, C, T, E> =
-    Rc<entity::RefCell<I, K, C, T, E>>;
+pub(crate) type EntityStrongRef<'e, I, K, C, T, E> =
+    Rc<entity::RefCell<'e, I, K, C, T, E>>;
 
 /// Weak reference to an Entity with interior mutability.
-pub(crate) type EntityWeakRef<I, K, C, T, E> =
-    Weak<entity::RefCell<I, K, C, T, E>>;
+pub(crate) type EntityWeakRef<'e, I, K, C, T, E> =
+    Weak<entity::RefCell<'e, I, K, C, T, E>>;
 
 /// The Trait that describes a generic entity.
 /// This is the Trait that defines the shared behavior for all the entities that
 /// belongs to the Environment. Each of the entities needs to implement this
-/// Trait and can interact with other entities via this Trait.
-pub trait Entity: Debug {
+/// Trait, and can interact with other entities via this Trait.
+///
+/// The lifetime `'e` is used to specify the lifetime bound of any immutable
+/// reference inside the type that is going to implement this trait. So that if
+/// your type includes an immutable reference with an explicit lifetime, it is
+/// possible to propagate the lifetime bound to the Offspring of this Entity
+/// without requiring a `'static` lifetime. If your object doesn't include
+/// references, you should specify a `'static` lifetime for the Entity and its
+/// Offspring (implying that that the object can outlive any lifetime). This
+/// lifetime bound does not apply to mutable references, since they cannot be
+/// copied without violate uniqueness (but can only be moved).
+pub trait Entity<'e>: Debug {
     /// The type of the Entity ID. This type is ideally very cheap to Clone and
     /// Copy.
     type Id: Hash + Eq + Clone + Debug;
@@ -114,6 +127,8 @@ pub trait Entity: Debug {
         &mut self,
         neighborhood: Option<
             NeighborHood<
+                '_,
+                'e,
                 Self::Id,
                 Self::Kind,
                 Self::Context,
@@ -130,10 +145,16 @@ pub trait Entity: Debug {
     /// responsibility of the entity owner to return an offspring only if the
     /// entity did actually generate an offspring in the current generation,
     /// otherwise this method should return None.
+    ///
+    /// The lifetime of the Entity `'e` will be propagated to its Offspring, so
+    /// that the lifetime bound stipulated when creating the parent Entity, that
+    /// may contain references as part of the type that implements this trait,
+    /// will be kept unchanged.
     fn offspring(
         &mut self,
     ) -> Option<
         Offspring<
+            'e,
             Self::Id,
             Self::Kind,
             Self::Context,

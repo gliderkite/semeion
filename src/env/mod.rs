@@ -14,11 +14,12 @@ pub use neighborhood::*;
 
 /// Unordered map of entities identified by their IDs, where all the entities
 /// belongs to the same Kind.
-type Entities<I, K, C, T, E> =
-    HashMap<I, entity::EntityStrongRef<I, K, C, T, E>>;
+type Entities<'e, I, K, C, T, E> =
+    HashMap<I, entity::EntityStrongRef<'e, I, K, C, T, E>>;
 
 /// Sorted map of all the entities by Kind.
-type EntitiesKinds<I, K, C, T, E> = BTreeMap<K, Entities<I, K, C, T, E>>;
+type EntitiesKinds<'e, I, K, C, T, E> =
+    BTreeMap<K, Entities<'e, I, K, C, T, E>>;
 
 /// The Environment is a grid, of squared tiles with the same size, where all
 /// the entities belongs. The Environment acts both as the data structure as
@@ -40,8 +41,17 @@ type EntitiesKinds<I, K, C, T, E> = BTreeMap<K, Entities<I, K, C, T, E>>;
 /// The geometry of the environment is defined as a Torus, that is, the grid
 /// bounds are adjacent to each other, allowing therefore the entities to move
 /// past each bounds into the next tile as if there were no limits.
+///
+/// The lifetime `'e` is the lifetime bound that is applied to all the entities
+/// owned by the environment, and it must be the same lifetime for all the
+/// entities types that implement the Entity trait. This lifetime defines the
+/// bound for the objects (immutable references lifetimes) that implement the
+/// Entity trait, and it allows to propagate the bound to the entities Offspring.
+/// If your objects don't make use of explicit lifetimes, you can simply specify
+/// a `'static` lifetime for the Environment.
 #[derive(Debug)]
 pub struct Environment<
+    'e,
     I: Eq + Hash + Clone + Debug,
     K: Eq + Hash + Debug,
     C,
@@ -49,10 +59,10 @@ pub struct Environment<
     E,
 > {
     // the list of strong references to the entities
-    entities: EntitiesKinds<I, K, C, T, E>,
+    entities: EntitiesKinds<'e, I, K, C, T, E>,
     // the (1-dimensional) grid of tiles that stores week references to the
     // entities according to their location
-    tiles: Tiles<I, K, C, T, E>,
+    tiles: Tiles<'e, I, K, C, T, E>,
     // the environment bounds
     bounds: Bounds,
     // the latest snapshot of the environment, used to update the entities
@@ -69,8 +79,8 @@ struct Snapshot<I, K> {
     location: Location,
 }
 
-impl<I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
-    Environment<I, K, C, T, E>
+impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
+    Environment<'e, I, K, C, T, E>
 {
     /// Constructs a new environment with the given bounds. The bounds represent
     /// the size of the grids of squared tiles of same side length, as number of
@@ -93,8 +103,8 @@ impl<I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
     /// and decrease, or generated offspring).
     pub fn insert<Q>(&mut self, entity: Q)
     where
-        Q: Entity<Id = I, Kind = K, Context = C, Transform = T, Error = E>,
-        Q: 'static,
+        Q: Entity<'e, Id = I, Kind = K, Context = C, Transform = T, Error = E>
+            + 'e,
     {
         self.insert_entity(Rc::new(RefCell::new(entity)));
     }
@@ -164,7 +174,7 @@ impl<I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
     }
 
     /// Inserts a new entity in the environment according to its location.
-    fn insert_entity(&mut self, entity: EntityStrongRef<I, K, C, T, E>) {
+    fn insert_entity(&mut self, entity: EntityStrongRef<'e, I, K, C, T, E>) {
         let (id, kind) = {
             let entity = entity.borrow();
             (entity.id().clone(), entity.kind())
@@ -222,7 +232,7 @@ impl<I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
     /// in the environment.
     fn populate_with_offspring(&mut self) {
         // gets a list of all the entities offsprings
-        let offspring: Vec<EntityStrongRef<I, K, C, T, E>> = self
+        let offspring: Vec<EntityStrongRef<'e, I, K, C, T, E>> = self
             .entities
             .values()
             .map(|e| e.values())

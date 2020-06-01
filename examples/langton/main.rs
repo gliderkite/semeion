@@ -12,7 +12,8 @@ mod env;
 
 struct GameState {
     // the environment where the simulation takes place
-    env: Environment<Id, Kind, Context, graphics::DrawParam, GameError>,
+    env:
+        Environment<'static, Id, Kind, Context, graphics::DrawParam, GameError>,
 }
 
 impl GameState {

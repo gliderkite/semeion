@@ -5,11 +5,11 @@ use super::*;
 
 /// The Entity offspring, represented as a list of heap allocated Entity traits.
 #[derive(Debug)]
-pub struct Offspring<I, K, C, T, E> {
-    entities: Vec<EntityStrongRef<I, K, C, T, E>>,
+pub struct Offspring<'e, I, K, C, T, E> {
+    entities: Vec<EntityStrongRef<'e, I, K, C, T, E>>,
 }
 
-impl<I, K, C, T, E> Default for Offspring<I, K, C, T, E> {
+impl<'e, I, K, C, T, E> Default for Offspring<'e, I, K, C, T, E> {
     /// Gets an empty Offspring.
     fn default() -> Self {
         Self {
@@ -18,12 +18,14 @@ impl<I, K, C, T, E> Default for Offspring<I, K, C, T, E> {
     }
 }
 
-impl<I: Eq + Hash + Clone + Debug, K, C, T, E> Offspring<I, K, C, T, E> {
+impl<'e, I: Eq + Hash + Clone + Debug, K, C, T, E>
+    Offspring<'e, I, K, C, T, E>
+{
     /// Adds a new Entity to the Offspring.
     pub fn insert<Q>(&mut self, entity: Q)
     where
-        Q: Entity<Id = I, Kind = K, Context = C, Transform = T, Error = E>,
-        Q: 'static,
+        Q: Entity<'e, Id = I, Kind = K, Context = C, Transform = T, Error = E>
+            + 'e,
     {
         self.entities.push(Rc::new(RefCell::new(entity)));
     }
@@ -37,7 +39,9 @@ impl<I: Eq + Hash + Clone + Debug, K, C, T, E> Offspring<I, K, C, T, E> {
     }
 
     /// Takes the entities out of the Offspring.
-    pub(crate) fn take_entities(self) -> Vec<EntityStrongRef<I, K, C, T, E>> {
+    pub(crate) fn take_entities(
+        self,
+    ) -> Vec<EntityStrongRef<'e, I, K, C, T, E>> {
         self.entities
     }
 }

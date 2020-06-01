@@ -46,7 +46,7 @@ impl Grid {
     }
 }
 
-impl Entity for Grid {
+impl Entity<'static> for Grid {
     type Id = Id;
     type Kind = Kind;
     type Context = Context;
@@ -105,6 +105,7 @@ impl Entity for Grid {
         &mut self,
     ) -> Option<
         Offspring<
+            'static,
             Self::Id,
             Self::Kind,
             Self::Context,

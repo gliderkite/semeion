@@ -19,20 +19,21 @@ pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {
 }
 
 #[derive(Debug)]
-pub struct Cell {
+pub struct Cell<'a> {
     id: Id,
     location: Location,
     lifespan: Lifespan,
-    mesh: graphics::Mesh,
-    offspring: Offspring<Id, Kind, Context, graphics::DrawParam, GameError>,
+    // all the Cells share the same Mesh
+    mesh: &'a graphics::Mesh,
+    offspring: Offspring<'a, Id, Kind, Context, graphics::DrawParam, GameError>,
     visited: Weak<RefCell<HashSet<Location>>>,
 }
 
-impl Cell {
+impl<'a> Cell<'a> {
     /// Constructs a new Cell with the given ID.
     pub fn new(
         location: Location,
-        mesh: graphics::Mesh,
+        mesh: &'a graphics::Mesh,
         visited: Weak<RefCell<HashSet<Location>>>,
     ) -> Self {
         Self {
@@ -51,7 +52,7 @@ impl Cell {
     }
 }
 
-impl Entity for Cell {
+impl<'a> Entity<'a> for Cell<'a> {
     type Id = Id;
     type Kind = Kind;
     type Context = Context;
@@ -171,7 +172,7 @@ impl Entity for Cell {
                 // as part of its offspring
                 self.offspring.insert(Cell::new(
                     loc,
-                    self.mesh.clone(),
+                    self.mesh,
                     self.visited.clone(),
                 ))
             }
@@ -184,6 +185,7 @@ impl Entity for Cell {
         &mut self,
     ) -> Option<
         Offspring<
+            'a,
             Self::Id,
             Self::Kind,
             Self::Context,
@@ -210,6 +212,6 @@ impl Entity for Cell {
         let offset = self.location.to_pixel_coords(env::SIDE);
         let offset = Point2::new(offset.x, offset.y);
 
-        graphics::draw(ctx, &self.mesh, transform.dest(offset))
+        graphics::draw(ctx, self.mesh, transform.dest(offset))
     }
 }
