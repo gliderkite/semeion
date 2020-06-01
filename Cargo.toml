@@ -1,18 +1,24 @@
 [package]
 name = "semeion"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Marco Conte <gliderkite@gmail.com>"]
 edition = "2018"
 description = "A generic 2D environment simulator"
 readme = "README.md"
 repository = "https://github.com/gliderkite/semeion"
+documentation = "https://docs.rs/semeion"
 license = "MIT"
 keywords = ["gamedev", "graphics", "engine", "entity", "2D"]
+exclude = ["*.gif"]
 
 [dependencies]
 
 [[example]]
 name = "langton"
 
+[[example]]
+name = "life"
+
 [dev-dependencies]
 ggez = "0.5"
+rand = "0.7"

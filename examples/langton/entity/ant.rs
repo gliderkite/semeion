@@ -109,10 +109,10 @@ impl Entity for Ant {
         Some(self.location)
     }
 
-    fn scope(&self) -> Option<usize> {
+    fn scope(&self) -> Option<Scope> {
         // The Ant can only see the tile it's currently in, it has no scope
         // beyond it.
-        Some(0)
+        Some(Scope::empty())
     }
 
     fn lifespan(&self) -> Option<Lifespan> {
@@ -141,14 +141,11 @@ impl Entity for Ant {
                 Self::Error,
             >,
         >,
-    ) {
+    ) -> Result<(), Self::Error> {
         // given the scope of the Ant, we expect the seeable portion of the
         // environment to be just the tile where the Ant is currently located
         let neighborhood = neighborhood.expect("Unexpected neighborhood");
-        let tile = neighborhood
-            .tiles()
-            .first()
-            .expect("Expected neighborhood with single tile");
+        let tile = neighborhood.center();
         // the tile in question can either be BLACK or WHITE, we encode this
         // information with a Cell entity or no entity respectively
         let entities = tile.entities();
@@ -177,6 +174,8 @@ impl Entity for Ant {
 
             self.turn_right_and_move_forward();
         }
+
+        Ok(())
     }
 
     fn offspring(

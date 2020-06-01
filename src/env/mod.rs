@@ -7,7 +7,10 @@ use std::rc::Rc;
 use super::*;
 use tile::*;
 
+mod neighborhood;
 mod tile;
+
+pub use neighborhood::*;
 
 /// Unordered map of entities identified by their IDs, where all the entities
 /// belongs to the same Kind.
@@ -130,27 +133,34 @@ impl<I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
     /// Moves forwards to the next generation.
     /// Moving to the next generation involves the following actions sorted by
     /// order:
-    /// - Calling Entity::act(neighborhood) for each entity with a snapshot of
+    /// - Calling `Entity::act(neighborhood)` for each entity with a snapshot of
     ///     the portion of the environment seen by the entity according to its
     ///     scope. The order of the entities called is arbitrary.
     /// - Inserting the entities offspring in the environment.
     /// - Removing the entities that reached the end of their lifespan from the
     ///     environment.
-    pub fn nextgen(&mut self) {
-        self.generation += 1;
-
+    ///
+    /// This method will return an error if any of the calls to `Entity::act()`
+    /// returns an error, in which case none of the steps that involve the update
+    /// of the environment will take place.
+    /// Nevertheless, it is guaranteed that all the calls to `Entity::act()` will
+    /// be performed independently of their outcome, in which case the first
+    /// error generated will be returned (even in case of multiple errors).
+    pub fn nextgen(&mut self) -> Result<(), E> {
         // call Entity::act(neighborhood) for each entity and update the environment
         // accordingly only after all the entities have been iterated, by relying
         // on a previously taken snapshot of the environment
         self.take_snapshot();
-        self.act();
+        self.act()?;
         self.update();
-        self.clear_snapshot();
 
         // take care of newborns entities by inserting them in the environment,
         // as well as removing entities that reached the end of their lifespan
         self.populate_with_offspring();
         self.depopulate_dead();
+
+        self.generation += 1;
+        Ok(())
     }
 
     /// Inserts a new entity in the environment according to its location.
@@ -169,7 +179,8 @@ impl<I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
     /// Takes a snapshot of the environment by storing the entities fields that
     /// are going to be updated before moving forward to the next generation.
     fn take_snapshot(&mut self) {
-        let additional = self.count().saturating_sub(self.snapshots.len());
+        self.snapshots.clear();
+        let additional = self.count().saturating_sub(self.snapshots.capacity());
         self.snapshots.reserve(additional);
 
         for entities in self.entities.values() {
@@ -186,11 +197,6 @@ impl<I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
                 }
             }
         }
-    }
-
-    /// Releases the current environment snapshot.
-    fn clear_snapshot(&mut self) {
-        self.snapshots.clear()
     }
 
     /// Updates the environment according to the current entities and previously
@@ -260,32 +266,20 @@ impl<I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
 
     /// Iterate over each entity and allow them to manifest their behavior by
     /// calling Entity::act(neighborhood) exposing them to the portion of
-    /// environment they can see from their current location.
-    fn act(&mut self) {
+    /// environment they can see from their current location. Returns an error
+    /// if any of the calls to `Entity::act()` returns an error, nevertheless
+    /// it is guaranteed that all the calls to `Entity::act()` will be performed
+    /// for the current generation, in which case the first generated error is
+    /// returned.
+    fn act(&mut self) -> Result<(), E> {
+        let mut res = Ok(());
         for entities in self.entities.values_mut() {
             for entity in entities.values_mut() {
                 let mut e = entity.borrow_mut();
                 let neighborhood = self.tiles.neighborhood(&e);
-                e.act(neighborhood);
+                res = res.and(e.act(neighborhood));
             }
         }
-    }
-}
-
-/// The neighbor tiles of a specific entity.
-pub struct NeighborHood<'a, I: Eq + Hash + Debug, K, C, T, E> {
-    tiles: Vec<TileView<'a, I, K, C, T, E>>,
-    bounds: Bounds,
-}
-
-impl<'a, I: Eq + Hash + Debug, K, C, T, E> NeighborHood<'a, I, K, C, T, E> {
-    /// Gets a list of tiles surrounding the Entity.
-    pub fn tiles(&self) -> &Vec<TileView<'a, I, K, C, T, E>> {
-        &self.tiles
-    }
-
-    /// Gets the bounds of this neighborhood.
-    pub fn bounds(&self) -> Bounds {
-        self.bounds
+        res
     }
 }

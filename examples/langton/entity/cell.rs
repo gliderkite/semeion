@@ -4,7 +4,7 @@ use ggez::{Context, GameError};
 
 use super::{Id, Kind};
 use crate::env;
-use semeion::{Entity, Lifespan, Location, NeighborHood, Offspring};
+use semeion::*;
 
 /// Constructs a new mesh for a Cell.
 pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {
@@ -55,7 +55,7 @@ impl Entity for Cell {
         Some(self.location)
     }
 
-    fn scope(&self) -> Option<usize> {
+    fn scope(&self) -> Option<Scope> {
         // The Cell is a static entity, it has no scope and cannot affect any
         // other entity.
         None
@@ -81,9 +81,10 @@ impl Entity for Cell {
                 Self::Error,
             >,
         >,
-    ) {
+    ) -> Result<(), Self::Error> {
         // the Cell will never interact with the environment
         debug_assert!(neighborhood.is_none());
+        Ok(())
     }
 
     fn offspring(

@@ -75,12 +75,14 @@ pub trait Entity: Debug {
     /// is only going to be able to see the tile where it currently resides, a
     /// scope equal to 1 will also include the 8 surrounding tiles, and so on.
     /// If None is returned the Entity has no scope at all, and can neither seen
-    /// of affect any other tile or surrounding Entity.
+    /// of affect any other tile or surrounding Entity. In other terms, the scope
+    /// effectively represents the distance from the tile where the Entity is
+    /// located, to the farthest tile it will ever be able to reach.
     /// Moreover, only entities that have a location in the environment can
     /// interact with surrounding entities, therefore it is a logic error to
     /// return Some from this method if `Entity::location()` returns None, but it
     /// is perfectly valid for entities to have a location but no scope.
-    fn scope(&self) -> Option<usize>;
+    fn scope(&self) -> Option<Scope>;
 
     /// Gets the remaining lifespan of the entity. If the entity has no lifespan
     /// attached to it, because meaningless, it should return None.
@@ -105,6 +107,9 @@ pub trait Entity: Debug {
     /// is, the NeighborHood will contain the entities according to their
     /// location in the previous generation.
     /// If the Entity has no scope the NeighborHood will be None.
+    /// If any of the operations performed in this method fails, you can bauble
+    /// up the error to the Environment, that will take care of reporting it to
+    /// the final user.
     fn act(
         &mut self,
         neighborhood: Option<
@@ -116,7 +121,7 @@ pub trait Entity: Debug {
                 Self::Error,
             >,
         >,
-    );
+    ) -> Result<(), Self::Error>;
 
     /// Gets the offspring of the entity.
     /// The offspring of an entity will be introduced in the environment at

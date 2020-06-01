@@ -67,48 +67,29 @@ impl<I: Eq + Hash + Clone + Debug, K, C, T, E> Tiles<I, K, C, T, E> {
             // with the surrounding environment
             (Some(center), Some(scope)) => {
                 let id = entity.id();
-                let mut tiles = Vec::with_capacity(Self::tiles_count(scope));
-                let side = Self::tiles_side_len(scope) as i32;
-                let scope = scope as i32;
+                let mut tiles =
+                    Vec::with_capacity(Bounds::len_with_scope(scope));
+
+                let scope = scope.magnitude() as i32;
                 // build the portion of the environment seen by the entity tile
                 // by tile from the top-left corner to the bottom-down corner
                 for y in -scope..=scope {
                     for x in -scope..=scope {
                         let index = center
                             .clone()
-                            .translate(Location { x, y }, self.bounds)
+                            .translate(Offset { x, y }, self.bounds)
                             .one_dimensional(self.bounds);
                         let tile = &self.tiles[index];
                         tiles.push(TileView {
-                            id: id.clone(),
+                            entity_id: id.clone(),
                             tile,
                         });
                     }
                 }
-                Some(NeighborHood {
-                    tiles,
-                    bounds: Bounds { x: side, y: side },
-                })
+
+                Some(tiles.into())
             }
             _ => None,
-        }
-    }
-
-    /// Gets the number or rows (and columns) or a grid with equal number of
-    /// rows and columns according to the given scope.
-    fn tiles_side_len(scope: usize) -> usize {
-        1 + scope.saturating_sub(1) * 2
-    }
-
-    /// Given a scope returns the number of tiles that are included in the
-    /// portion of the environment within that scope.
-    fn tiles_count(scope: usize) -> usize {
-        match scope {
-            0 => 1,
-            _ => {
-                let side = Self::tiles_side_len(scope);
-                Self::tiles_count(scope - 1) + (side * 4 + 4)
-            }
         }
     }
 }
@@ -129,10 +110,14 @@ impl<I: Eq + Hash, K, C, T, E> Default for Tile<I, K, C, T, E> {
     }
 }
 
-/// A single Tile as seen from a specific entity.
+/// A single Tile as seen from a specific entity when it belongs to a NeighborHood.
+#[derive(Debug)]
 pub struct TileView<'a, I: Eq + Hash + Debug, K, C, T, E> {
+    // the ID of the Entity that is seeing this tile
+    entity_id: I,
+    // the reference to the Tile in the Environment, where the weak references
+    // to the entities are stored
     tile: &'a Tile<I, K, C, T, E>,
-    id: I,
 }
 
 impl<'a, I: Eq + Hash + Clone + Debug, K, C, T, E> TileView<'a, I, K, C, T, E> {
@@ -143,9 +128,24 @@ impl<'a, I: Eq + Hash + Clone + Debug, K, C, T, E> TileView<'a, I, K, C, T, E> {
         self.tile
             .entities
             .iter()
-            .filter_map(
-                move |(i, e)| if &self.id != i { e.upgrade() } else { None },
-            )
+            .filter_map(move |(id, e)| {
+                if &self.entity_id != id {
+                    e.upgrade()
+                } else {
+                    None
+                }
+            })
             .collect()
+    }
+
+    /// Gets the total number of entities located in this Tile, including the
+    /// entity that "owns" the tile.
+    pub fn len(&self) -> usize {
+        self.tile.entities.len()
+    }
+
+    /// Returns true only if there are no entities located in this tile.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }

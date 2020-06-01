@@ -1,4 +1,5 @@
 //! https://en.wikipedia.org/wiki/Langton%27s_ant
+#![allow(clippy::type_complexity)]
 
 use ggez::graphics;
 use ggez::*;
@@ -24,11 +25,7 @@ impl GameState {
         env.insert(Grid::new(grid::mesh(ctx)?));
 
         // the ant, placed in the center of the environment
-        let bounds = env::bounds();
-        let location = Location {
-            x: bounds.x / 2,
-            y: bounds.y / 2,
-        };
+        let location = env::bounds().center();
         env.insert(Ant::new(location, ant::mesh(ctx)?, cell::mesh(ctx)?));
 
         Ok(Self { env })
@@ -50,7 +47,7 @@ impl GameState {
 impl event::EventHandler for GameState {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         while timer::check_update_time(ctx, 60) {
-            self.env.nextgen();
+            self.env.nextgen()?;
         }
         Ok(())
     }
