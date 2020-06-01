@@ -1,0 +1,18 @@
+[package]
+name = "semeion"
+version = "0.1.0"
+authors = ["Marco Conte <gliderkite@gmail.com>"]
+edition = "2018"
+description = "A generic 2D environment simulator"
+readme = "README.md"
+repository = "https://github.com/gliderkite/semeion"
+license = "MIT"
+keywords = ["gamedev", "graphics", "engine", "entity", "2D"]
+
+[dependencies]
+
+[[example]]
+name = "langton"
+
+[dev-dependencies]
+ggez = "0.5"

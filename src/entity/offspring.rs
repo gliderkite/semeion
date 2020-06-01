@@ -1,0 +1,43 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use super::*;
+
+/// The Entity offspring, represented as a list of heap allocated Entity traits.
+#[derive(Debug)]
+pub struct Offspring<I, K, C, T, E> {
+    entities: Vec<EntityStrongRef<I, K, C, T, E>>,
+}
+
+impl<I, K, C, T, E> Default for Offspring<I, K, C, T, E> {
+    /// Gets an empty Offspring.
+    fn default() -> Self {
+        Self {
+            entities: Vec::default(),
+        }
+    }
+}
+
+impl<I: Eq + Hash + Clone + Debug, K, C, T, E> Offspring<I, K, C, T, E> {
+    /// Adds a new Entity to the Offspring.
+    pub fn insert<Q>(&mut self, entity: Q)
+    where
+        Q: Entity<Id = I, Kind = K, Context = C, Transform = T, Error = E>,
+        Q: 'static,
+    {
+        self.entities.push(Rc::new(RefCell::new(entity)));
+    }
+
+    /// Takes the entities out of Self to create a new Offspring. Useful when
+    /// you want to release a new Entity offspring into the Environment.
+    pub fn drain(&mut self) -> Self {
+        Self {
+            entities: self.entities.drain(..).collect(),
+        }
+    }
+
+    /// Takes the entities out of the Offspring.
+    pub(crate) fn take_entities(self) -> Vec<EntityStrongRef<I, K, C, T, E>> {
+        self.entities
+    }
+}
