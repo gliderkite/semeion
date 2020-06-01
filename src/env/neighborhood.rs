@@ -2,19 +2,21 @@ use super::*;
 
 /// The neighbor tiles of a specific entity.
 #[derive(Debug)]
-pub struct NeighborHood<'a, I: Eq + Hash + Debug, K, C, T, E> {
-    tiles: Vec<TileView<'a, I, K, C, T, E>>,
+pub struct NeighborHood<'a, 'e, I: Eq + Hash + Debug, K, C, T, E> {
+    tiles: Vec<TileView<'a, 'e, I, K, C, T, E>>,
     bounds: Bounds,
 }
 
-impl<'a, I: Eq + Hash + Debug, K, C, T, E> NeighborHood<'a, I, K, C, T, E> {
+impl<'a, 'e, I: Eq + Hash + Debug, K, C, T, E>
+    NeighborHood<'a, 'e, I, K, C, T, E>
+{
     /// Gets the bounds of this neighborhood.
     pub fn bounds(&self) -> Bounds {
         self.bounds
     }
 
     /// Gets the list of tiles included in this NeighborHood.
-    pub fn tiles(&self) -> &Vec<TileView<'a, I, K, C, T, E>> {
+    pub fn tiles(&self) -> &Vec<TileView<'a, 'e, I, K, C, T, E>> {
         &self.tiles
     }
 
@@ -22,7 +24,7 @@ impl<'a, I: Eq + Hash + Debug, K, C, T, E> NeighborHood<'a, I, K, C, T, E> {
     /// NeighborHood. The NeighborHood is seen as a Torus from this method,
     /// therefore, out of bounds offsets will be translated considering that
     /// the NeighborHood edges are joined.
-    pub fn tile(&self, offset: Offset) -> &TileView<'a, I, K, C, T, E> {
+    pub fn tile(&self, offset: Offset) -> &TileView<'a, 'e, I, K, C, T, E> {
         debug_assert!(!self.tiles.is_empty());
         let mut center = self.bounds.center();
         let index = center
@@ -32,7 +34,7 @@ impl<'a, I: Eq + Hash + Debug, K, C, T, E> NeighborHood<'a, I, K, C, T, E> {
     }
 
     /// Gets the tile located in the center of this NeighborHood.
-    pub fn center(&self) -> &TileView<'a, I, K, C, T, E> {
+    pub fn center(&self) -> &TileView<'a, 'e, I, K, C, T, E> {
         self.tile(Offset::origin())
     }
 
@@ -45,7 +47,7 @@ impl<'a, I: Eq + Hash + Debug, K, C, T, E> NeighborHood<'a, I, K, C, T, E> {
         &self,
         offset: Offset,
         scope: Scope,
-    ) -> Option<Vec<&TileView<'a, I, K, C, T, E>>> {
+    ) -> Option<Vec<&TileView<'a, 'e, I, K, C, T, E>>> {
         // the location of the tile T relative to the center
         let loc = self.bounds.center() + offset;
 
@@ -69,12 +71,13 @@ impl<'a, I: Eq + Hash + Debug, K, C, T, E> NeighborHood<'a, I, K, C, T, E> {
     }
 }
 
-impl<'a, I: Eq + Hash + Debug, K, C, T, E>
-    From<Vec<TileView<'a, I, K, C, T, E>>> for NeighborHood<'a, I, K, C, T, E>
+impl<'a, 'e, I: Eq + Hash + Debug, K, C, T, E>
+    From<Vec<TileView<'a, 'e, I, K, C, T, E>>>
+    for NeighborHood<'a, 'e, I, K, C, T, E>
 {
     /// Constructs a new NeighborHood from a list of tiles that can encode a
     /// squared grid.
-    fn from(tiles: Vec<TileView<'a, I, K, C, T, E>>) -> Self {
+    fn from(tiles: Vec<TileView<'a, 'e, I, K, C, T, E>>) -> Self {
         debug_assert!(!tiles.is_empty());
         let length = tiles.len() as f64;
         // NeighborHoods can only be constructed if they represent squares

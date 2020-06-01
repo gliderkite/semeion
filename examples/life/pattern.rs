@@ -4,16 +4,16 @@ use semeion::space::*;
 pub struct Pattern;
 
 impl Pattern {
-    /// Constructs the Die hard pattern.
-    /// https://www.conwaylife.com/wiki/Die_hard
-    pub fn diehard() -> Vec<Location> {
+    /// Constructs the Acorn pattern.
+    /// https://www.conwaylife.com/wiki/Acorn
+    pub fn acorn() -> Vec<Location> {
         let offsets = vec![
-            Offset { x: 1, y: 0 },
-            Offset { x: 1, y: 1 },
-            Offset { x: 5, y: 1 },
-            Offset { x: 6, y: 1 },
-            Offset { x: 7, y: 1 },
-            Offset { x: 6, y: -1 },
+            Offset { x: 0, y: 2 },
+            Offset { x: -1, y: 2 },
+            Offset { x: 2, y: 1 },
+            Offset { x: 3, y: 2 },
+            Offset { x: 4, y: 2 },
+            Offset { x: 5, y: 2 },
         ];
         Self::build(env::bounds().center(), offsets)
     }

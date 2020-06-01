@@ -17,11 +17,15 @@ after generation.
     cargo run --release --example langton
     ```
 
+    ![langton preview](examples/langton/langton.gif)
+
  - [Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life)
 
     ```bash
     cargo run --release --example life
     ```
+
+    ![life preview](examples/life/life.gif)
 
 
 ## Semantic Versioning

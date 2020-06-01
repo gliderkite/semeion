@@ -1,13 +1,13 @@
 use semeion::{Bounds, Size};
 
 /// The width of the window and size of the environment.
-pub const WIDTH: f32 = 1000.0;
+pub const WIDTH: f32 = 1400.0;
 
 /// The height of the window and size of the environment.
-pub const HEIGHT: f32 = 800.0;
+pub const HEIGHT: f32 = 900.0;
 
 /// The length of each environment grid tile.
-pub const SIDE: f32 = 10.0;
+pub const SIDE: f32 = 5.0;
 
 /// Gets the size of the environment.
 pub fn size() -> Size {

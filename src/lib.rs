@@ -58,10 +58,8 @@ mod math;
 
 pub use entity::*;
 pub use env::*;
-pub use lifespan::*;
 pub use space::*;
 
 pub mod entity;
 pub mod env;
-pub mod lifespan;
 pub mod space;

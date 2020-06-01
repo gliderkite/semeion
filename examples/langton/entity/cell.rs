@@ -36,7 +36,7 @@ impl Cell {
     }
 }
 
-impl Entity for Cell {
+impl Entity<'static> for Cell {
     type Id = Id;
     type Kind = Kind;
     type Context = Context;
@@ -91,6 +91,7 @@ impl Entity for Cell {
         &mut self,
     ) -> Option<
         Offspring<
+            'static,
             Self::Id,
             Self::Kind,
             Self::Context,

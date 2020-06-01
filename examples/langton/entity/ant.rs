@@ -43,7 +43,8 @@ pub struct Ant {
     location: Location,
     mesh: graphics::Mesh,
     offspring_mesh: graphics::Mesh,
-    offspring: Offspring<Id, Kind, Context, graphics::DrawParam, GameError>,
+    offspring:
+        Offspring<'static, Id, Kind, Context, graphics::DrawParam, GameError>,
     offspring_id: Id,
 }
 
@@ -90,7 +91,7 @@ impl Ant {
     }
 }
 
-impl Entity for Ant {
+impl Entity<'static> for Ant {
     type Id = Id;
     type Kind = Kind;
     type Context = Context;
@@ -182,6 +183,7 @@ impl Entity for Ant {
         &mut self,
     ) -> Option<
         Offspring<
+            'static,
             Self::Id,
             Self::Kind,
             Self::Context,
