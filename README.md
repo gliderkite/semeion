@@ -28,6 +28,16 @@ after generation.
     ![life preview](examples/life/life.gif)
 
 
+ - [Wireworld](https://en.wikipedia.org/wiki/Wireworld)
+
+    ```bash
+    cargo run --release --example wireworld
+    ```
+
+    ![wireworld preview](examples/wireworld/wireworld.gif)
+
+
+
 ## Semantic Versioning
 
 This library is extremely experimental, but it follows the basic rules of

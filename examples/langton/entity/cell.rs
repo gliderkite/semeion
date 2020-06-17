@@ -55,12 +55,6 @@ impl Entity<'static> for Cell {
         Some(self.location)
     }
 
-    fn scope(&self) -> Option<Scope> {
-        // The Cell is a static entity, it has no scope and cannot affect any
-        // other entity.
-        None
-    }
-
     fn lifespan(&self) -> Option<Lifespan> {
         Some(self.lifespan)
     }
@@ -68,39 +62,6 @@ impl Entity<'static> for Cell {
     fn lifespan_mut(&mut self) -> Option<&mut Lifespan> {
         // the lifespan of the Cell can be affected by the Ant behavior
         Some(&mut self.lifespan)
-    }
-
-    fn act(
-        &mut self,
-        neighborhood: Option<
-            NeighborHood<
-                Self::Id,
-                Self::Kind,
-                Self::Context,
-                Self::Transform,
-                Self::Error,
-            >,
-        >,
-    ) -> Result<(), Self::Error> {
-        // the Cell will never interact with the environment
-        debug_assert!(neighborhood.is_none());
-        Ok(())
-    }
-
-    fn offspring(
-        &mut self,
-    ) -> Option<
-        Offspring<
-            'static,
-            Self::Id,
-            Self::Kind,
-            Self::Context,
-            Self::Transform,
-            Self::Error,
-        >,
-    > {
-        // the Cell will never produce any offspring
-        None
     }
 
     fn draw(
@@ -112,7 +73,7 @@ impl Entity<'static> for Cell {
         // given transformation (that is always going to be equal to the Identity
         // matrix) since for the purposes of this simulation neither zoom or
         // panning are supported.
-        assert_eq!(transform, &graphics::DrawParam::default());
+        debug_assert_eq!(transform, &graphics::DrawParam::default());
 
         // coordinate in pixels of the top-left corner of the mesh
         let offset = self.location.to_pixel_coords(env::SIDE);

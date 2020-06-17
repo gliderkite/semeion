@@ -87,19 +87,12 @@ impl<'a> Entity<'a> for Cell<'a> {
         Some(self.lifespan)
     }
 
-    fn lifespan_mut(&mut self) -> Option<&mut Lifespan> {
-        // The lifespan of the Cell cannot be directly affected by the surrounding
-        // cells, but it will just be changed by self, according to the environment
-        // as it sees it.
-        None
-    }
-
     /// Game of Life rules:
     /// 1. Any live cell with two or three live neighbors survives.
     /// 2. Any dead cell with three live neighbors becomes a live cell.
     /// 3. All other live cells die in the next generation. Similarly, all other
     ///     dead cells stay dead.
-    fn act(
+    fn react(
         &mut self,
         neighborhood: Option<
             NeighborHood<
@@ -206,7 +199,7 @@ impl<'a> Entity<'a> for Cell<'a> {
         // given transformation (that is always going to be equal to the Identity
         // matrix) since for the purposes of this simulation neither zoom or
         // panning are supported.
-        assert_eq!(transform, &graphics::DrawParam::default());
+        debug_assert_eq!(transform, &graphics::DrawParam::default());
 
         // coordinate in pixels of the top-left corner of the mesh
         let offset = self.location.to_pixel_coords(env::SIDE);

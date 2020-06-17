@@ -61,68 +61,12 @@ impl Entity<'static> for Grid {
         Kind::Grid
     }
 
-    fn location(&self) -> Option<Location> {
-        // The Grid belongs to the whole environment, it has not specific location
-        // within it, and it is never contained in a single cell.
-        None
-    }
-
-    fn scope(&self) -> Option<Scope> {
-        // The grid is a static entity, it cannot interact with any other, and
-        // therefore has no scope.
-        None
-    }
-
-    fn lifespan(&self) -> Option<Lifespan> {
-        // The grid has no lifespan.
-        None
-    }
-
-    fn lifespan_mut(&mut self) -> Option<&mut Lifespan> {
-        // No other entity can affect the Grid lifespan.
-        None
-    }
-
-    fn act(
-        &mut self,
-        neighborhood: Option<
-            NeighborHood<
-                Self::Id,
-                Self::Kind,
-                Self::Context,
-                Self::Transform,
-                Self::Error,
-            >,
-        >,
-    ) -> Result<(), Self::Error> {
-        // The Grid is not alive. It cannot take any action or influence the
-        // environment, ever. There is nothing to do here.
-        assert!(neighborhood.is_none());
-        Ok(())
-    }
-
-    fn offspring(
-        &mut self,
-    ) -> Option<
-        Offspring<
-            'static,
-            Self::Id,
-            Self::Kind,
-            Self::Context,
-            Self::Transform,
-            Self::Error,
-        >,
-    > {
-        // The Grid is not alive. It will not produce any offspring.
-        None
-    }
-
     fn draw(
         &self,
         context: &mut Self::Context,
         transform: &Self::Transform,
     ) -> Result<(), Self::Error> {
-        assert_eq!(transform, &graphics::DrawParam::default());
+        debug_assert_eq!(transform, &graphics::DrawParam::default());
         graphics::draw(context, &self.mesh, *transform)
     }
 }

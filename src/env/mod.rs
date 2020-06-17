@@ -143,25 +143,26 @@ impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
     /// Moves forwards to the next generation.
     /// Moving to the next generation involves the following actions sorted by
     /// order:
-    /// - Calling `Entity::act(neighborhood)` for each entity with a snapshot of
+    /// - Calling `Entity::observe(neighborhood)` for each entity with a snapshot
+    ///     of the portion of the environment seen by the entity according to its
+    ///     scope. The order of the entities called is arbitrary.
+    /// - Calling `Entity::react(neighborhood)` for each entity with a snapshot of
     ///     the portion of the environment seen by the entity according to its
     ///     scope. The order of the entities called is arbitrary.
     /// - Inserting the entities offspring in the environment.
     /// - Removing the entities that reached the end of their lifespan from the
     ///     environment.
     ///
-    /// This method will return an error if any of the calls to `Entity::act()`
-    /// returns an error, in which case none of the steps that involve the update
-    /// of the environment will take place.
-    /// Nevertheless, it is guaranteed that all the calls to `Entity::act()` will
-    /// be performed independently of their outcome, in which case the first
-    /// error generated will be returned (even in case of multiple errors).
+    /// This method will return an error if any of the calls to `Entity::observe()`
+    /// or `Entity::act()` returns an error, in which case none of the steps that
+    /// involve the update of the environment will take place.
     pub fn nextgen(&mut self) -> Result<(), E> {
-        // call Entity::act(neighborhood) for each entity and update the environment
-        // accordingly only after all the entities have been iterated, by relying
-        // on a previously taken snapshot of the environment
+        // call Entity::observe() and then Entity::act() for each entity, and
+        // update the environment accordingly only after all the entities have
+        // been iterated, by relying on a previously taken snapshot of the
+        // environment
         self.take_snapshot();
-        self.act()?;
+        self.observe_and_react()?;
         self.update();
 
         // take care of newborns entities by inserting them in the environment,
@@ -275,21 +276,31 @@ impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
     }
 
     /// Iterate over each entity and allow them to manifest their behavior by
-    /// calling Entity::act(neighborhood) exposing them to the portion of
-    /// environment they can see from their current location. Returns an error
-    /// if any of the calls to `Entity::act()` returns an error, nevertheless
-    /// it is guaranteed that all the calls to `Entity::act()` will be performed
-    /// for the current generation, in which case the first generated error is
-    /// returned.
-    fn act(&mut self) -> Result<(), E> {
-        let mut res = Ok(());
+    /// calling `Entity::observe(neighborhood)` exposing them to the portion of
+    /// environment they can see from their current location, to then call for
+    /// all the same entities `Entity::react(neighborhood)`, allowing each entity
+    /// to react to the same portion of the environment.
+    /// Returns an error if any of the calls to `Entity::observe()`, or
+    /// `Entity::react()` returns an error.
+    fn observe_and_react(&mut self) -> Result<(), E> {
+        // first allow all the entities to observe their neighborhood
         for entities in self.entities.values_mut() {
             for entity in entities.values_mut() {
                 let mut e = entity.borrow_mut();
                 let neighborhood = self.tiles.neighborhood(&e);
-                res = res.and(e.act(neighborhood));
+                e.observe(neighborhood)?;
             }
         }
-        res
+
+        // then allow the same entities to react to the same neighborhoods
+        for entities in self.entities.values_mut() {
+            for entity in entities.values_mut() {
+                let mut e = entity.borrow_mut();
+                let neighborhood = self.tiles.neighborhood(&e);
+                e.react(neighborhood)?;
+            }
+        }
+
+        Ok(())
     }
 }

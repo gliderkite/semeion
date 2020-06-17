@@ -6,9 +6,6 @@ use super::{Cell, Id, Kind};
 use crate::env;
 use semeion::*;
 
-/// The ID of the Ant.
-const ID: Id = -2;
-
 /// Constructs a new mesh for the Ant.
 pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {
     let mut mesh = graphics::MeshBuilder::new();
@@ -45,7 +42,6 @@ pub struct Ant {
     offspring_mesh: graphics::Mesh,
     offspring:
         Offspring<'static, Id, Kind, Context, graphics::DrawParam, GameError>,
-    offspring_id: Id,
 }
 
 impl Ant {
@@ -56,13 +52,14 @@ impl Ant {
         offspring_mesh: graphics::Mesh,
     ) -> Self {
         Self {
-            id: ID,
+            // IDs are simply randomly generated as the possibility of collisions
+            // are very very low
+            id: rand::random(),
             direction: Direction::Left,
             mesh,
             location,
             offspring_mesh,
             offspring: Offspring::default(),
-            offspring_id: ID + 1,
         }
     }
 
@@ -121,17 +118,12 @@ impl Entity<'static> for Ant {
         Some(Lifespan::Immortal)
     }
 
-    fn lifespan_mut(&mut self) -> Option<&mut Lifespan> {
-        // No other entity can affect the Ant lifespan.
-        None
-    }
-
     /// The Ant behaves according to the rules below:
     /// - At a white square, turn 90° clockwise, flip the color of the square,
     ///     move forward one unit.
     /// - At a black square, turn 90° counter-clockwise, flip the color of the
     ///     square, move forward one unit.
-    fn act(
+    fn react(
         &mut self,
         neighborhood: Option<
             NeighborHood<
@@ -165,9 +157,9 @@ impl Entity<'static> for Ant {
         } else {
             // if the cell is WHITE, we flip its color by creating a new entity
             // as offspring for the next generation, and move right
-            self.offspring_id += 1;
+            let offspring_id = rand::random();
             let black_cell = Cell::new(
-                self.offspring_id,
+                offspring_id,
                 self.location,
                 self.offspring_mesh.clone(),
             );
@@ -204,7 +196,7 @@ impl Entity<'static> for Ant {
         // given transformation (that is always going to be equal to the Identity
         // matrix) since for the purposes of this simulation neither zoom or
         // panning are supported.
-        assert_eq!(transform, &graphics::DrawParam::default());
+        debug_assert_eq!(transform, &graphics::DrawParam::default());
 
         // the radius is equal to half the grid tiles side
         let radius = env::SIDE / 2.0;
