@@ -15,7 +15,7 @@ impl Pattern {
             Offset { x: 4, y: 2 },
             Offset { x: 5, y: 2 },
         ];
-        Self::build(env::bounds().center(), offsets)
+        Self::build(env::dimension().center(), offsets)
     }
 
     /// Build the pattern from an initial location with the given offsets from it.

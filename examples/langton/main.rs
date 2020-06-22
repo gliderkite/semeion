@@ -20,13 +20,13 @@ impl GameState {
     /// Constructs the game state by populating the environment with the initial
     /// entities.
     fn new(ctx: &mut Context) -> Result<Self, GameError> {
-        let mut env = Environment::new(env::bounds());
+        let mut env = Environment::new(env::dimension());
         // a grid as a static entity used only for drawing purposes in order to
         // show the white grid cells borders
         env.insert(Grid::new(grid::mesh(ctx)?));
 
         // the ant, placed in the center of the environment
-        let location = env::bounds().center();
+        let location = env::dimension().center();
         env.insert(Ant::new(location, ant::mesh(ctx)?, cell::mesh(ctx)?));
 
         Ok(Self { env })

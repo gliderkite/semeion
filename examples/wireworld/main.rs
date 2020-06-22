@@ -47,7 +47,7 @@ impl<'a> GameState<'a> {
     /// entities.
     fn new() -> Result<Self, GameError> {
         Ok(Self {
-            env: Environment::new(env::bounds()),
+            env: Environment::new(env::dimension()),
         })
     }
 

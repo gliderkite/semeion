@@ -30,8 +30,8 @@ type EntitiesKinds<'e, I, K, C, T, E> =
 /// An environment can contains entities of different kinds, dynamically
 /// allocated and defined according to the user needs via the Entity trait, but
 /// all the entities must share the same Entity trait associated types.
-/// The Environment can be created with specific bounds, that represents the
-/// size of the grid that describes its geometry (the Bounds can be computed
+/// The Environment can be created with specific dimension, that represents the
+/// size of the grid that describes its geometry (the Dimension can be computed
 /// from the window size in pixels where the environment will be drawn for a
 /// specific length of the grid tiles side).
 /// Once the environment is initialized by inserting entities in its initial
@@ -39,8 +39,8 @@ type EntitiesKinds<'e, I, K, C, T, E> =
 /// to move to the next generation (where the interaction between the entities
 /// takes place).
 /// The geometry of the environment is defined as a Torus, that is, the grid
-/// bounds are adjacent to each other, allowing therefore the entities to move
-/// past each bounds into the next tile as if there were no limits.
+/// dimension are adjacent to each other, allowing therefore the entities to move
+/// past each dimension into the next tile as if there were no limits.
 ///
 /// The lifetime `'e` is the lifetime bound that is applied to all the entities
 /// owned by the environment, and it must be the same lifetime for all the
@@ -63,8 +63,8 @@ pub struct Environment<
     // the (1-dimensional) grid of tiles that stores week references to the
     // entities according to their location
     tiles: Tiles<'e, I, K, C, T, E>,
-    // the environment bounds
-    bounds: Bounds,
+    // the environment dimension
+    dimension: Dimension,
     // the latest snapshot of the environment, used to update the entities
     // properties within it at each generation
     snapshots: Vec<Snapshot<I, K>>,
@@ -82,14 +82,14 @@ struct Snapshot<I, K> {
 impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
     Environment<'e, I, K, C, T, E>
 {
-    /// Constructs a new environment with the given bounds. The bounds represent
+    /// Constructs a new environment with the given dimension. The dimension represent
     /// the size of the grids of squared tiles of same side length, as number of
     /// columns and rows.
-    pub fn new(bounds: Bounds) -> Self {
+    pub fn new(dimension: Dimension) -> Self {
         Self {
             entities: BTreeMap::new(),
-            tiles: Tiles::new(bounds),
-            bounds,
+            tiles: Tiles::new(dimension),
+            dimension,
             snapshots: Vec::new(),
             generation: 0,
         }

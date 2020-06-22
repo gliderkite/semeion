@@ -31,7 +31,7 @@ impl Pattern {
         offsets.push(Offset { x: -14, y: -3 });
         offsets.push(Offset { x: -14, y: 3 });
 
-        let origin = env::bounds().center();
+        let origin = env::dimension().center();
         let mut cells = Vec::with_capacity(offsets.len() + 1);
         cells.push((origin, cell::State::Conductor));
         cells.extend(offsets.iter().map(|&delta| {

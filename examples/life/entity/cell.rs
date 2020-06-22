@@ -130,7 +130,8 @@ impl<'a> Entity<'a> for Cell<'a> {
         for offset in Offset::border(scope) {
             // the location in the environment of the tile belonging to this
             // Cell border
-            let loc = *self.location.clone().translate(offset, env::bounds());
+            let loc =
+                *self.location.clone().translate(offset, env::dimension());
 
             // skip this tile if already visited by another Cell, or store this
             // information in the cache of already visited tiles

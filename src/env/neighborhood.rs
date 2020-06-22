@@ -4,15 +4,15 @@ use super::*;
 #[derive(Debug)]
 pub struct NeighborHood<'a, 'e, I: Eq + Hash + Debug, K, C, T, E> {
     tiles: Vec<TileView<'a, 'e, I, K, C, T, E>>,
-    bounds: Bounds,
+    dimension: Dimension,
 }
 
 impl<'a, 'e, I: Eq + Hash + Debug, K, C, T, E>
     NeighborHood<'a, 'e, I, K, C, T, E>
 {
-    /// Gets the bounds of this neighborhood.
-    pub fn bounds(&self) -> Bounds {
-        self.bounds
+    /// Gets the dimension of this neighborhood.
+    pub fn dimension(&self) -> Dimension {
+        self.dimension
     }
 
     /// Gets the list of tiles included in this NeighborHood.
@@ -22,14 +22,14 @@ impl<'a, 'e, I: Eq + Hash + Debug, K, C, T, E>
 
     /// Gets the tile located at the given offset from the center of this
     /// NeighborHood. The NeighborHood is seen as a Torus from this method,
-    /// therefore, out of bounds offsets will be translated considering that
+    /// therefore, out of dimension offsets will be translated considering that
     /// the NeighborHood edges are joined.
     pub fn tile(&self, offset: Offset) -> &TileView<'a, 'e, I, K, C, T, E> {
         debug_assert!(!self.tiles.is_empty());
-        let mut center = self.bounds.center();
+        let mut center = self.dimension.center();
         let index = center
-            .translate(offset, self.bounds)
-            .one_dimensional(self.bounds);
+            .translate(offset, self.dimension)
+            .one_dimensional(self.dimension);
         &self.tiles[index]
     }
 
@@ -42,27 +42,28 @@ impl<'a, 'e, I: Eq + Hash + Debug, K, C, T, E>
     /// located at a given Offset from the center tile, and according to the
     /// given Scope, that represents the distance from the tile T.
     /// The tiles are returned in arbitrary order. Returns None if any of the
-    /// border tiles is out of the NeighborHood bounds for the given Scope.
+    /// border tiles is out of the NeighborHood dimension for the given Scope.
     pub fn border(
         &self,
         offset: Offset,
         scope: Scope,
     ) -> Option<Vec<&TileView<'a, 'e, I, K, C, T, E>>> {
         // the location of the tile T relative to the center
-        let loc = self.bounds.center() + offset;
+        let loc = self.dimension.center() + offset;
 
         // iterate over the 4 corners surrounding the tile T to check if
         // the whole border of the tile T is contained within this NeighborHood
         // according to the given scope
         for &delta in &Offset::corners(scope) {
-            if !self.bounds.contains(loc + delta) {
+            if !self.dimension.contains(loc + delta) {
                 return None;
             }
         }
 
-        let mut tiles = Vec::with_capacity(Bounds::perimeter_with_scope(scope));
+        let mut tiles =
+            Vec::with_capacity(Dimension::perimeter_with_scope(scope));
         for mut delta in Offset::border(scope) {
-            let loc = *delta.translate(offset, self.bounds);
+            let loc = *delta.translate(offset, self.dimension);
             tiles.push(self.tile(loc))
         }
 
@@ -85,7 +86,7 @@ impl<'a, 'e, I: Eq + Hash + Debug, K, C, T, E>
         let side = length.sqrt() as i32;
         Self {
             tiles,
-            bounds: Bounds { x: side, y: side },
+            dimension: Dimension { x: side, y: side },
         }
     }
 }

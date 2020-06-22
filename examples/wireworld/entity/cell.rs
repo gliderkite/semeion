@@ -1,6 +1,7 @@
 use ggez::graphics;
 use ggez::nalgebra::Point2;
 use ggez::{Context, GameError};
+use std::any::Any;
 
 use super::{Id, Kind};
 use crate::{env, Meshes};
@@ -18,11 +19,11 @@ pub enum State {
 /// Implement the entity::State trait to allow downcasting when querying the
 /// Cell state via the Entity::state() method.
 impl entity::State for State {
-    fn as_any(&self) -> &dyn std::any::Any {
+    fn as_any(&self) -> &dyn Any {
         self
     }
 
-    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+    fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
 }

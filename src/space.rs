@@ -7,9 +7,9 @@ pub struct Point<T> {
     pub y: T,
 }
 
-/// Represents the bounds of a grid as the integer number of columns and rows.
+/// Represents the dimension of a grid as the integer number of columns and rows.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct Bounds {
+pub struct Dimension {
     pub x: i32,
     pub y: i32,
 }
@@ -61,21 +61,25 @@ impl Location {
     }
 
     /// Maps a 2-dimensional coordinate to a 1-dimensional index.
-    pub fn one_dimensional(self, bounds: Bounds) -> usize {
+    pub fn one_dimensional(self, dimension: Dimension) -> usize {
         debug_assert!(!self.x.is_negative());
         debug_assert!(!self.y.is_negative());
-        let pos = self.y.saturating_mul(bounds.x).saturating_add(self.x);
+        let pos = self.y.saturating_mul(dimension.x).saturating_add(self.x);
         debug_assert!(!pos.is_negative());
-        debug_assert!(pos < bounds.x.saturating_mul(bounds.y));
+        debug_assert!(pos < dimension.x.saturating_mul(dimension.y));
         pos as usize
     }
 
     /// Translates the current location by the given offset, while keeping the
-    /// final location within a Torus with the given bounds. Returns a reference
+    /// final location within a Torus with the given dimension. Returns a reference
     /// to the final location.
-    pub fn translate(&mut self, offset: Offset, bounds: Bounds) -> &mut Self {
-        self.x = self.x.saturating_add(offset.x).rem_euclid(bounds.x);
-        self.y = self.y.saturating_add(offset.y).rem_euclid(bounds.y);
+    pub fn translate(
+        &mut self,
+        offset: Offset,
+        dimension: Dimension,
+    ) -> &mut Self {
+        self.x = self.x.saturating_add(offset.x).rem_euclid(dimension.x);
+        self.y = self.y.saturating_add(offset.y).rem_euclid(dimension.y);
         self
     }
 }
@@ -99,7 +103,7 @@ impl Offset {
         }
 
         let mut offsets =
-            Vec::with_capacity(Bounds::perimeter_with_scope(scope));
+            Vec::with_capacity(Dimension::perimeter_with_scope(scope));
         // top and bottom rows of the border
         for &y in &[-delta, delta] {
             for x in -delta..=delta {
@@ -131,17 +135,17 @@ impl Offset {
 }
 
 impl Size {
-    /// Converts the Size to a Bounds according to the given side length.
-    pub fn to_bounds(self, side: f32) -> Bounds {
-        Bounds {
+    /// Converts the Size to a Dimension according to the given side length.
+    pub fn to_dimension(self, side: f32) -> Dimension {
+        Dimension {
             x: (self.width / side) as i32,
             y: (self.height / side) as i32,
         }
     }
 }
 
-impl Bounds {
-    /// Gets the number of tiles in a grid of given Bounds, equal to the
+impl Dimension {
+    /// Gets the number of tiles in a grid of given Dimension, equal to the
     /// number of row by the number of columns.
     pub fn len(self) -> usize {
         debug_assert!(!self.x.is_negative());
@@ -154,13 +158,13 @@ impl Bounds {
         self.len() == 0
     }
 
-    /// Returns true only if the components of this Bounds are equal in magnitude,
-    /// that is, `self.x == self.y`, and therefore this Bounds represents a square.
+    /// Returns true only if the components of this Dimension are equal in magnitude,
+    /// that is, `self.x == self.y`, and therefore this Dimension represents a square.
     pub fn is_square(self) -> bool {
         self.x == self.y
     }
 
-    /// Gets the Location of the center of this Bounds.
+    /// Gets the Location of the center of this Dimension.
     pub fn center(self) -> Location {
         Location {
             x: self.x / 2,
@@ -168,7 +172,7 @@ impl Bounds {
         }
     }
 
-    /// Returns true only if the given Location is within the Bounds.
+    /// Returns true only if the given Location is within the Dimension.
     pub fn contains(self, location: Location) -> bool {
         debug_assert!(self.x >= 0 && self.y >= 0);
         !(location.x < 0

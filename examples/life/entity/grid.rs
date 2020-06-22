@@ -13,18 +13,18 @@ const ID: Id = -1;
 pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {
     let mut mesh = graphics::MeshBuilder::new();
     let size = env::size();
-    let bounds = env::bounds();
+    let dimension = env::dimension();
     let stroke_width = 0.5;
     let color = graphics::BLACK;
 
     // horizontal lines
-    for i in 0..=bounds.y {
+    for i in 0..=dimension.y {
         let y = i as f32 * env::SIDE;
         let points = [Point2::new(0.0, y), Point2::new(size.width, y)];
         mesh.line(&points, stroke_width, color)?;
     }
     // vertical lines
-    for i in 0..=bounds.x {
+    for i in 0..=dimension.x {
         let x = i as f32 * env::SIDE;
         let points = [Point2::new(x, 0.0), Point2::new(x, size.height)];
         mesh.line(&points, stroke_width, color)?;

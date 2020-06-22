@@ -1,4 +1,4 @@
-use semeion::{Bounds, Size};
+use semeion::{Dimension, Size};
 
 /// The width of the window and size of the environment.
 pub const WIDTH: f32 = 1000.0;
@@ -17,7 +17,7 @@ pub fn size() -> Size {
     }
 }
 
-/// Gets the bounds of the environment.
-pub fn bounds() -> Bounds {
-    size().to_bounds(SIDE)
+/// Gets the dimension of the environment.
+pub fn dimension() -> Dimension {
+    size().to_dimension(SIDE)
 }

@@ -2,23 +2,23 @@ use std::cell::RefMut;
 
 use super::*;
 
-/// A 1-dimensional list of tiles that represents a grid of given bounds with
+/// A 1-dimensional list of tiles that represents a grid of given dimension with
 /// squared tiles of with the same side length.
 /// Only entities that have a defined location will be stored in this data
 /// structure.
 #[derive(Debug)]
 pub struct Tiles<'e, I: Eq + Hash, K, C, T, E> {
     tiles: Vec<Tile<'e, I, K, C, T, E>>,
-    bounds: Bounds,
+    dimension: Dimension,
 }
 
 impl<'e, I: Eq + Hash + Clone + Debug, K, C, T, E> Tiles<'e, I, K, C, T, E> {
-    /// Constructs a new list of tiles of the given bounds with no entities
+    /// Constructs a new list of tiles of the given dimension with no entities
     /// assigned to it.
-    pub fn new(bounds: Bounds) -> Self {
-        let mut tiles = Vec::with_capacity(bounds.len());
+    pub fn new(dimension: Dimension) -> Self {
+        let mut tiles = Vec::with_capacity(dimension.len());
         tiles.resize_with(tiles.capacity(), Tile::default);
-        Self { tiles, bounds }
+        Self { tiles, dimension }
     }
 
     /// Inserts a weak reference to the entity in the grid according to its
@@ -30,7 +30,7 @@ impl<'e, I: Eq + Hash + Clone + Debug, K, C, T, E> Tiles<'e, I, K, C, T, E> {
     ) -> bool {
         let location = entity.borrow().location();
         if let Some(location) = location {
-            let index = location.one_dimensional(self.bounds);
+            let index = location.one_dimensional(self.dimension);
             let tile = &mut self.tiles[index];
             let w = Rc::downgrade(entity);
             tile.entities.insert(entity.borrow().id().clone(), w);
@@ -43,18 +43,18 @@ impl<'e, I: Eq + Hash + Clone + Debug, K, C, T, E> Tiles<'e, I, K, C, T, E> {
     /// Remove the entity with the given ID from the given location. Returns
     /// whether the entity was removed or not.
     pub fn remove(&mut self, id: &I, location: Location) -> bool {
-        let index = location.one_dimensional(self.bounds);
+        let index = location.one_dimensional(self.dimension);
         let tile = &mut self.tiles[index];
         tile.entities.remove(id).is_some()
     }
 
     /// Move the entity with the given ID between a previous and a new location.
     pub fn swap(&mut self, id: &I, from: Location, to: Location) {
-        let index = from.one_dimensional(self.bounds);
+        let index = from.one_dimensional(self.dimension);
         let tile = &mut self.tiles[index];
 
         if let Some(e) = tile.entities.remove(&id) {
-            let index = to.one_dimensional(self.bounds);
+            let index = to.one_dimensional(self.dimension);
             let tile = &mut self.tiles[index];
             tile.entities.insert(id.clone(), e);
         }
@@ -71,7 +71,7 @@ impl<'e, I: Eq + Hash + Clone + Debug, K, C, T, E> Tiles<'e, I, K, C, T, E> {
             (Some(center), Some(scope)) => {
                 let id = entity.id();
                 let mut tiles =
-                    Vec::with_capacity(Bounds::len_with_scope(scope));
+                    Vec::with_capacity(Dimension::len_with_scope(scope));
 
                 let scope = scope.magnitude() as i32;
                 // build the portion of the environment seen by the entity tile
@@ -80,8 +80,8 @@ impl<'e, I: Eq + Hash + Clone + Debug, K, C, T, E> Tiles<'e, I, K, C, T, E> {
                     for x in -scope..=scope {
                         let index = center
                             .clone()
-                            .translate(Offset { x, y }, self.bounds)
-                            .one_dimensional(self.bounds);
+                            .translate(Offset { x, y }, self.dimension)
+                            .one_dimensional(self.dimension);
                         let tile = &self.tiles[index];
                         tiles.push(TileView {
                             entity_id: id.clone(),
