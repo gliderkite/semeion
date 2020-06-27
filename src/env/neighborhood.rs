@@ -1,46 +1,69 @@
+use std::collections::HashSet;
+
 use super::*;
 
-/// The neighbor tiles of a specific entity.
+/// The neighbor tiles of a specific Entity.
 #[derive(Debug)]
-pub struct NeighborHood<'a, 'e, I: Eq + Hash + Debug, K, C, T, E> {
-    tiles: Vec<TileView<'a, 'e, I, K, C, T, E>>,
+pub struct NeighborHood<'a, 'e, I, K, C, T, E> {
     dimension: Dimension,
+    tiles: Vec<TileView<'a, 'e, I, K, C, T, E>>,
 }
 
-impl<'a, 'e, I: Eq + Hash + Debug, K, C, T, E>
-    NeighborHood<'a, 'e, I, K, C, T, E>
-{
+impl<'a, 'e, I, K, C, T, E> NeighborHood<'a, 'e, I, K, C, T, E> {
     /// Gets the dimension of this neighborhood.
     pub fn dimension(&self) -> Dimension {
         self.dimension
     }
 
-    /// Gets the list of tiles included in this NeighborHood.
-    pub fn tiles(&self) -> &Vec<TileView<'a, 'e, I, K, C, T, E>> {
-        &self.tiles
+    /// Gets an iterator over the Tiles that belong to this NeighborHood.
+    pub fn tiles(
+        &self,
+    ) -> impl Iterator<Item = &TileView<'a, 'e, I, K, C, T, E>> {
+        self.tiles.iter()
     }
 
-    /// Gets the tile located at the given offset from the center of this
-    /// NeighborHood. The NeighborHood is seen as a Torus from this method,
-    /// therefore, out of dimension offsets will be translated considering that
+    /// Gets an iterator over the mutable Tiles that belong to this NeighborHood.
+    pub fn tiles_mut(
+        &mut self,
+    ) -> impl Iterator<Item = &mut TileView<'a, 'e, I, K, C, T, E>> {
+        self.tiles.iter_mut()
+    }
+
+    /// Gets a reference to the Tile located at the given offset from the center
+    /// of this NeighborHood. The NeighborHood is seen as a Torus from this method,
+    /// therefore, out of bounds offsets will be translated considering that
     /// the NeighborHood edges are joined.
     pub fn tile(&self, offset: Offset) -> &TileView<'a, 'e, I, K, C, T, E> {
-        debug_assert!(!self.tiles.is_empty());
-        let mut center = self.dimension.center();
-        let index = center
-            .translate(offset, self.dimension)
-            .one_dimensional(self.dimension);
-        &self.tiles[index]
+        &self.tiles[self.index(offset)]
     }
 
-    /// Gets the tile located in the center of this NeighborHood.
+    /// Gets a mutable reference to the Tile located at the given offset from
+    /// the center of this NeighborHood. The NeighborHood is seen as a Torus
+    /// from this method,therefore, out of bounds offsets will be translated
+    /// considering that the NeighborHood edges are joined.
+    pub fn tile_mut(
+        &mut self,
+        offset: Offset,
+    ) -> &mut TileView<'a, 'e, I, K, C, T, E> {
+        debug_assert!(!self.tiles.is_empty());
+        let index = self.index(offset);
+        &mut self.tiles[index]
+    }
+
+    /// Gets a reference to the Tile located in the center of this NeighborHood.
     pub fn center(&self) -> &TileView<'a, 'e, I, K, C, T, E> {
         self.tile(Offset::origin())
     }
 
-    /// Gets a list of tiles that surround the tile T of this NeighborHood,
-    /// located at a given Offset from the center tile, and according to the
-    /// given Scope, that represents the distance from the tile T.
+    /// Gets a mutable reference to the Tile located in the center of this
+    /// NeighborHood.
+    pub fn center_mut(&mut self) -> &mut TileView<'a, 'e, I, K, C, T, E> {
+        self.tile_mut(Offset::origin())
+    }
+
+    /// Gets a list of tiles that surround the Tile T of this NeighborHood,
+    /// located at a given Offset from the center Tile, and according to the
+    /// given Scope, that represents the distance from the Tile T.
     /// The tiles are returned in arbitrary order. Returns None if any of the
     /// border tiles is out of the NeighborHood dimension for the given Scope.
     pub fn border(
@@ -48,7 +71,7 @@ impl<'a, 'e, I: Eq + Hash + Debug, K, C, T, E>
         offset: Offset,
         scope: Scope,
     ) -> Option<Vec<&TileView<'a, 'e, I, K, C, T, E>>> {
-        // the location of the tile T relative to the center
+        // the location of the tile T relative to the center of the NeighborHood
         let loc = self.dimension.center() + offset;
 
         // iterate over the 4 corners surrounding the tile T to check if
@@ -70,10 +93,31 @@ impl<'a, 'e, I: Eq + Hash + Debug, K, C, T, E>
         debug_assert_eq!(tiles.capacity(), tiles.len());
         Some(tiles)
     }
+
+    /// Gets the index of the Tile located at the given offset from the center
+    /// of this NeighborHood. The NeighborHood is seen as a Torus from this
+    /// method, therefore, out of bounds offsets will be translated
+    /// considering that the NeighborHood edges are joined.
+    fn index(&self, offset: Offset) -> usize {
+        debug_assert!(!self.tiles.is_empty());
+        let mut center = self.dimension.center();
+        let index = center
+            .translate(offset, self.dimension)
+            .one_dimensional(self.dimension);
+        debug_assert!(index < self.tiles.len());
+        index
+    }
+
+    /// Returns true only if this NeighborHood contains unique Tiles.
+    fn is_unique(&self) -> bool {
+        let mut uniq = HashSet::with_capacity(self.tiles.len());
+        self.tiles.iter().all(move |tile| {
+            uniq.insert(tile.inner() as *const Tile<'e, I, K, C, T, E>)
+        })
+    }
 }
 
-impl<'a, 'e, I: Eq + Hash + Debug, K, C, T, E>
-    From<Vec<TileView<'a, 'e, I, K, C, T, E>>>
+impl<'a, 'e, I, K, C, T, E> From<Vec<TileView<'a, 'e, I, K, C, T, E>>>
     for NeighborHood<'a, 'e, I, K, C, T, E>
 {
     /// Constructs a new NeighborHood from a list of tiles that can encode a
@@ -83,10 +127,15 @@ impl<'a, 'e, I: Eq + Hash + Debug, K, C, T, E>
         let length = tiles.len() as f64;
         // NeighborHoods can only be constructed if they represent squares
         debug_assert!(math::is_perfect_square(length));
+
         let side = length.sqrt() as i32;
-        Self {
+        let neighborhood = Self {
             tiles,
             dimension: Dimension { x: side, y: side },
-        }
+        };
+
+        // NeighborHoods can only contain unique Tiles
+        debug_assert!(neighborhood.is_unique());
+        neighborhood
     }
 }

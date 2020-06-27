@@ -37,6 +37,15 @@ after generation.
     ![wireworld preview](../assets/wireworld.gif)
 
 
+ - [Mandelbrot](https://en.wikipedia.org/wiki/Mandelbrot_set)
+
+    ```bash
+    cargo run --release --example mandelbrot
+    ```
+
+    ![mandelbrot preview](../assets/mandelbrot.gif)
+
+
 
 ## Semantic Versioning
 

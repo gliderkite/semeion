@@ -1,8 +1,6 @@
-use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::rc::Rc;
 
 use super::*;
 use tile::*;
@@ -11,15 +9,20 @@ mod neighborhood;
 mod tile;
 
 pub use neighborhood::*;
+pub use tile::TileView;
 
 /// Unordered map of entities identified by their IDs, where all the entities
 /// belongs to the same Kind.
 type Entities<'e, I, K, C, T, E> =
-    HashMap<I, entity::EntityStrongRef<'e, I, K, C, T, E>>;
+    HashMap<I, Box<entity::Trait<'e, I, K, C, T, E>>>;
 
 /// Sorted map of all the entities by Kind.
 type EntitiesKinds<'e, I, K, C, T, E> =
     BTreeMap<K, Entities<'e, I, K, C, T, E>>;
+
+/// Closure over a mutable Entity reference.
+type EntityClosure<'e, I, K, C, T, E> =
+    dyn Fn(&mut entity::Trait<'e, I, K, C, T, E>) -> Result<(), E>;
 
 /// The Environment is a grid, of squared tiles with the same size, where all
 /// the entities belongs. The Environment acts both as the data structure as
@@ -47,17 +50,8 @@ type EntitiesKinds<'e, I, K, C, T, E> =
 /// entities types that implement the Entity trait. This lifetime defines the
 /// bound for the objects (immutable references lifetimes) that implement the
 /// Entity trait, and it allows to propagate the bound to the entities Offspring.
-/// If your objects don't make use of explicit lifetimes, you can simply specify
-/// a `'static` lifetime for the Environment.
 #[derive(Debug)]
-pub struct Environment<
-    'e,
-    I: Eq + Hash + Clone + Debug,
-    K: Eq + Hash + Debug,
-    C,
-    T,
-    E,
-> {
+pub struct Environment<'e, I, K, C, T, E> {
     // the list of strong references to the entities
     entities: EntitiesKinds<'e, I, K, C, T, E>,
     // the (1-dimensional) grid of tiles that stores week references to the
@@ -79,7 +73,7 @@ struct Snapshot<I, K> {
     location: Location,
 }
 
-impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
+impl<'e, I: Eq + Hash + Clone, K: Hash + Ord, C, T, E>
     Environment<'e, I, K, C, T, E>
 {
     /// Constructs a new environment with the given dimension. The dimension represent
@@ -90,7 +84,7 @@ impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
             entities: BTreeMap::new(),
             tiles: Tiles::new(dimension),
             dimension,
-            snapshots: Vec::new(),
+            snapshots: Vec::default(),
             generation: 0,
         }
     }
@@ -106,7 +100,7 @@ impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
         Q: Entity<'e, Id = I, Kind = K, Context = C, Transform = T, Error = E>
             + 'e,
     {
-        self.insert_entity(Rc::new(RefCell::new(entity)));
+        self.insert_entity(Box::new(entity));
     }
 
     /// Draws the environment by iterating over each of its entities, sorted by
@@ -116,7 +110,7 @@ impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
     pub fn draw(&self, ctx: &mut C, transform: &T) -> Result<(), E> {
         for entities in self.entities.values() {
             for entity in entities.values() {
-                entity.borrow().draw(ctx, transform)?;
+                entity.draw(ctx, transform)?;
             }
         }
         Ok(())
@@ -140,6 +134,29 @@ impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
         self.generation
     }
 
+    /// Gets an iterator over all the entities of the given Kind. The entities
+    /// are returned in arbitrary order. If no entities of the given Kind exists
+    /// in the Environment None is returned.
+    pub fn entities(
+        &self,
+        kind: &K,
+    ) -> Option<impl Iterator<Item = &entity::Trait<'e, I, K, C, T, E>>> {
+        self.entities
+            .get(kind)
+            .map(|entities| entities.values().map(|e| &**e))
+    }
+
+    /// Gets an iterator over all the entities located at the given location.
+    /// The Environment is seen as a Torus from this method, therefore, out of
+    /// bounds offsets will be translated considering that the Environment
+    /// edges are joined.
+    pub fn entities_at(
+        &self,
+        location: Location,
+    ) -> impl Iterator<Item = &entity::Trait<'e, I, K, C, T, E>> {
+        self.tiles.entities_at(location)
+    }
+
     /// Moves forwards to the next generation.
     /// Moving to the next generation involves the following actions sorted by
     /// order:
@@ -157,12 +174,30 @@ impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
     /// or `Entity::act()` returns an error, in which case none of the steps that
     /// involve the update of the environment will take place.
     pub fn nextgen(&mut self) -> Result<(), E> {
-        // call Entity::observe() and then Entity::act() for each entity, and
-        // update the environment accordingly only after all the entities have
-        // been iterated, by relying on a previously taken snapshot of the
-        // environment
-        self.take_snapshot();
-        self.observe_and_react()?;
+        self.next(Option::<&EntityClosure<'e, I, K, C, T, E>>::None)
+    }
+
+    /// Moves forwards to the next generation.
+    /// Follows the same semantic of `Environment::nextgen()`, but allows to call
+    /// the provided closure for each Entity in the Environment. The closure
+    /// will be called prior to any other step, allowing to initialize the state
+    /// of each entity.
+    /// Returns an error if any of the calls to the provided closure returns an
+    /// error.
+    pub fn nextgen_with<F>(&mut self, entity_func: F) -> Result<(), E>
+    where
+        F: Fn(&mut entity::Trait<'e, I, K, C, T, E>) -> Result<(), E>,
+    {
+        self.next(Some(entity_func))
+    }
+
+    /// Moves forwards to the next generation.
+    fn next<F>(&mut self, entity_func: Option<F>) -> Result<(), E>
+    where
+        F: Fn(&mut entity::Trait<'e, I, K, C, T, E>) -> Result<(), E>,
+    {
+        self.record_snapshot();
+        self.observe_and_react(entity_func)?;
         self.update();
 
         // take care of newborns entities by inserting them in the environment,
@@ -175,28 +210,26 @@ impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
     }
 
     /// Inserts a new entity in the environment according to its location.
-    fn insert_entity(&mut self, entity: EntityStrongRef<'e, I, K, C, T, E>) {
-        let (id, kind) = {
-            let entity = entity.borrow();
-            (entity.id().clone(), entity.kind())
-        };
+    fn insert_entity(
+        &mut self,
+        mut entity: Box<entity::Trait<'e, I, K, C, T, E>>,
+    ) {
         // insert the weak ref in the grid according to the entity location
-        self.tiles.insert(&entity);
+        self.tiles.insert(&mut *entity);
         // insert the strong ref in the entities map
-        let entities = self.entities.entry(kind).or_default();
-        entities.insert(id, entity);
+        let entities = self.entities.entry(entity.kind()).or_default();
+        entities.insert(entity.id().clone(), entity);
     }
 
     /// Takes a snapshot of the environment by storing the entities fields that
     /// are going to be updated before moving forward to the next generation.
-    fn take_snapshot(&mut self) {
+    fn record_snapshot(&mut self) {
         self.snapshots.clear();
         let additional = self.count().saturating_sub(self.snapshots.capacity());
         self.snapshots.reserve(additional);
 
         for entities in self.entities.values() {
             for entity in entities.values() {
-                let entity = entity.borrow();
                 // if the entity has no location there is nothing to update in
                 // the environment
                 if let Some(location) = entity.location() {
@@ -219,12 +252,12 @@ impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
                 self.entities
                     .get(&snapshot.kind)?
                     .get(&snapshot.id)?
-                    .borrow()
                     .location()
             };
             // update the entity location in the grid of tiles
             if let Some(location) = get_location() {
-                self.tiles.swap(&snapshot.id, snapshot.location, location);
+                self.tiles
+                    .relocate(&snapshot.id, snapshot.location, location);
             }
         }
     }
@@ -233,12 +266,12 @@ impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
     /// in the environment.
     fn populate_with_offspring(&mut self) {
         // gets a list of all the entities offsprings
-        let offspring: Vec<EntityStrongRef<'e, I, K, C, T, E>> = self
+        let offspring: Vec<Box<entity::Trait<'e, I, K, C, T, E>>> = self
             .entities
-            .values()
-            .map(|e| e.values())
+            .values_mut()
+            .map(|e| e.values_mut())
             .flatten()
-            .filter_map(|e| e.borrow_mut().offspring())
+            .filter_map(|e| e.offspring())
             .map(|offspring| offspring.take_entities())
             .flatten()
             .collect();
@@ -255,10 +288,9 @@ impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
             // remove the weak reference to the entity from the grid of tiles only
             // if it has a location and it reached the end of its lifespan
             for entity in entities.values() {
-                let e = entity.borrow();
-                match (e.location(), e.lifespan()) {
+                match (entity.location(), entity.lifespan()) {
                     (Some(loc), Some(lifespan)) if !lifespan.is_alive() => {
-                        self.tiles.remove(e.id(), loc);
+                        self.tiles.remove(entity.id(), loc);
                     }
                     _ => (),
                 };
@@ -266,7 +298,7 @@ impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
             // remove the strong reference to the entity if it reached the end
             // of its lifespan
             entities.retain(|_, entity| {
-                if let Some(lifespan) = entity.borrow().lifespan() {
+                if let Some(lifespan) = entity.lifespan() {
                     lifespan.is_alive()
                 } else {
                     true
@@ -275,29 +307,42 @@ impl<'e, I: Eq + Hash + Clone + Debug, K: Eq + Hash + Ord + Debug, C, T, E>
         }
     }
 
-    /// Iterate over each entity and allow them to manifest their behavior by
-    /// calling `Entity::observe(neighborhood)` exposing them to the portion of
-    /// environment they can see from their current location, to then call for
-    /// all the same entities `Entity::react(neighborhood)`, allowing each entity
-    /// to react to the same portion of the environment.
-    /// Returns an error if any of the calls to `Entity::observe()`, or
-    /// `Entity::react()` returns an error.
-    fn observe_and_react(&mut self) -> Result<(), E> {
-        // first allow all the entities to observe their neighborhood
+    /// Iterate over each entity and allow them to:
+    /// - Execute the provided custom closure the mutable reference of each
+    ///     entity.
+    /// - Manifest their behavior by calling `Entity::observe(neighborhood)`,
+    ///     exposing them to the portion of environment they can see from their
+    ///     current location
+    /// - For all the same entities, call `Entity::react(neighborhood)`,
+    ///     allowing each entity to react to the same portion of the environment.
+    /// Returns an error if any of the calls to `Entity::observe()`,
+    /// `Entity::react()`, or the provided closure returns an error.
+    fn observe_and_react<F>(&mut self, entity_func: Option<F>) -> Result<(), E>
+    where
+        F: Fn(&mut entity::Trait<'e, I, K, C, T, E>) -> Result<(), E>,
+    {
+        // if specified, calls the given closure for each entity
+        if let Some(entity_func) = entity_func {
+            for entities in self.entities.values_mut() {
+                for entity in entities.values_mut() {
+                    entity_func(&mut **entity)?;
+                }
+            }
+        }
+
+        // then allow all the entities to observe their neighborhood
         for entities in self.entities.values_mut() {
             for entity in entities.values_mut() {
-                let mut e = entity.borrow_mut();
-                let neighborhood = self.tiles.neighborhood(&e);
-                e.observe(neighborhood)?;
+                let neighborhood = self.tiles.neighborhood(&**entity);
+                entity.observe(neighborhood)?;
             }
         }
 
         // then allow the same entities to react to the same neighborhoods
         for entities in self.entities.values_mut() {
             for entity in entities.values_mut() {
-                let mut e = entity.borrow_mut();
-                let neighborhood = self.tiles.neighborhood(&e);
-                e.react(neighborhood)?;
+                let neighborhood = self.tiles.neighborhood(&**entity);
+                entity.react(neighborhood)?;
             }
         }
 

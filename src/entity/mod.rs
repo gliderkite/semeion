@@ -1,7 +1,4 @@
-use std::cell;
 use std::fmt::Debug;
-use std::hash::Hash;
-use std::rc::{Rc, Weak};
 
 use super::*;
 
@@ -16,18 +13,6 @@ pub mod state;
 /// The Entity Trait type alias.
 pub(crate) type Trait<'e, I, K, C, T, E> = dyn Entity<'e, Id = I, Kind = K, Context = C, Transform = T, Error = E>
     + 'e;
-
-/// The RefCell type alias that owns an Entity Trait.
-pub(crate) type RefCell<'e, I, K, C, T, E> =
-    cell::RefCell<Trait<'e, I, K, C, T, E>>;
-
-/// Strong reference to an Entity with interior mutability.
-pub(crate) type EntityStrongRef<'e, I, K, C, T, E> =
-    Rc<entity::RefCell<'e, I, K, C, T, E>>;
-
-/// Weak reference to an Entity with interior mutability.
-pub(crate) type EntityWeakRef<'e, I, K, C, T, E> =
-    Weak<entity::RefCell<'e, I, K, C, T, E>>;
 
 /// The Trait that describes a generic Entity.
 /// This is the Trait that defines the shared behavior for all the entities that
@@ -44,12 +29,10 @@ pub(crate) type EntityWeakRef<'e, I, K, C, T, E> =
 /// This lifetime bound does not apply to mutable references, since they cannot
 /// be copied without violate uniqueness (but can only be moved).
 pub trait Entity<'e>: Debug {
-    /// The type of the Entity ID. This type is ideally very cheap to Clone and
-    /// Copy.
-    type Id: Hash + Eq + Clone + Debug;
+    /// The type of the Entity ID. This type is ideally very cheap to Clone.
+    type Id;
 
-    /// The type of the Entity kind. This type is ideally very cheap to Clone
-    /// and Copy.
+    /// The type of the Entity kind.
     type Kind;
 
     /// The type of the graphics Context used to draw the shape of the entities.

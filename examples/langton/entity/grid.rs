@@ -46,7 +46,7 @@ impl Grid {
     }
 }
 
-impl Entity<'static> for Grid {
+impl<'a> Entity<'a> for Grid {
     type Id = Id;
     type Kind = Kind;
     type Context = Context;

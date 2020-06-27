@@ -147,7 +147,7 @@ impl<'a> Entity<'a> for Cell<'a> {
             if !neighborhood.tile(offset).is_empty() {
                 // if there is an entity in this tile, it must be a single living
                 // Cell, anything else would be an error
-                assert_eq!(neighborhood.tile(offset).len(), 1);
+                debug_assert_eq!(neighborhood.tile(offset).len(), 1);
                 continue;
             }
 
@@ -161,13 +161,13 @@ impl<'a> Entity<'a> for Cell<'a> {
                 .sum();
             // any dead cell with three live neighbors becomes a live cell
             if count == 3 {
-                assert!(neighborhood.tile(offset).is_empty());
+                debug_assert!(neighborhood.tile(offset).is_empty());
                 // this Cell will introduce in the environment a new living cell
                 // as part of its offspring
                 self.offspring.insert(Cell::new(
                     loc,
                     self.mesh,
-                    self.visited.clone(),
+                    Weak::clone(&self.visited),
                 ))
             }
         }

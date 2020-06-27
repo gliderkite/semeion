@@ -161,7 +161,6 @@ impl<'a> Entity<'a> for Cell<'a> {
                 // count the number of neighbors that are electron heads
                 let count = neighbors
                     .filter(|e| {
-                        let e = e.borrow();
                         let state = e
                             .state()
                             .and_then(|s| s.as_any().downcast_ref::<State>())

@@ -82,7 +82,7 @@ impl<'a> event::EventHandler for GameState<'a> {
     }
 }
 
-pub fn main() -> GameResult {
+fn main() -> GameResult {
     use ggez::conf::{WindowMode, WindowSetup};
 
     let (ctx, events_loop) =

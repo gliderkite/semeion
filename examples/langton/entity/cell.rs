@@ -36,7 +36,7 @@ impl Cell {
     }
 }
 
-impl Entity<'static> for Cell {
+impl<'a> Entity<'a> for Cell {
     type Id = Id;
     type Kind = Kind;
     type Context = Context;

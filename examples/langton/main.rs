@@ -10,13 +10,12 @@ use entity::*;
 mod entity;
 mod env;
 
-struct GameState {
+struct GameState<'a> {
     // the environment where the simulation takes place
-    env:
-        Environment<'static, Id, Kind, Context, graphics::DrawParam, GameError>,
+    env: Environment<'a, Id, Kind, Context, graphics::DrawParam, GameError>,
 }
 
-impl GameState {
+impl<'a> GameState<'a> {
     /// Constructs the game state by populating the environment with the initial
     /// entities.
     fn new(ctx: &mut Context) -> Result<Self, GameError> {
@@ -45,7 +44,7 @@ impl GameState {
     }
 }
 
-impl event::EventHandler for GameState {
+impl<'a> event::EventHandler for GameState<'a> {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         while timer::check_update_time(ctx, 60) {
             self.env.nextgen()?;
@@ -63,7 +62,7 @@ impl event::EventHandler for GameState {
     }
 }
 
-pub fn main() -> GameResult {
+fn main() -> GameResult {
     use ggez::conf::{WindowMode, WindowSetup};
 
     let (ctx, events_loop) = &mut ContextBuilder::new("langton", "Marco Conte")

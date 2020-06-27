@@ -172,13 +172,18 @@ impl Dimension {
         }
     }
 
-    /// Returns true only if the given Location is within the Dimension.
+    /// Returns true only if the given Location is within this Dimension.
     pub fn contains(self, location: Location) -> bool {
         debug_assert!(self.x >= 0 && self.y >= 0);
         !(location.x < 0
             || location.x >= self.x
             || location.y < 0
             || location.y >= self.y)
+    }
+
+    /// Gets the aspect ratio of this Dimension.
+    pub fn aspect_ratio(self) -> f32 {
+        self.x as f32 / self.y as f32
     }
 
     /// Gets the length of the side of a squared grid (where the number of rows
@@ -238,6 +243,14 @@ impl Scope {
     /// Gets the magnitude of this Scope, that is its value.
     pub fn magnitude(self) -> usize {
         self.0
+    }
+
+    /// Returns true only if the area covered by the neighborhood of an Entity
+    /// with such Scope, would be bigger (in the x or y dimension) of the given
+    /// Dimension.
+    pub(crate) fn overflows(self, dimension: Dimension) -> bool {
+        let side = Dimension::side_with_scope(self) as i32;
+        side > dimension.x || side > dimension.y
     }
 }
 

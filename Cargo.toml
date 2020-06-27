@@ -22,6 +22,10 @@ name = "life"
 [[example]]
 name = "wireworld"
 
+[[example]]
+name = "mandelbrot"
+
 [dev-dependencies]
 ggez = "0.5"
+num-complex = "0.3"
 rand = "0.7"

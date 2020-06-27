@@ -34,17 +34,16 @@ enum Direction {
 }
 
 #[derive(Debug)]
-pub struct Ant {
+pub struct Ant<'a> {
     id: Id,
     direction: Direction,
     location: Location,
     mesh: graphics::Mesh,
     offspring_mesh: graphics::Mesh,
-    offspring:
-        Offspring<'static, Id, Kind, Context, graphics::DrawParam, GameError>,
+    offspring: Offspring<'a, Id, Kind, Context, graphics::DrawParam, GameError>,
 }
 
-impl Ant {
+impl<'a> Ant<'a> {
     /// Constructs a new ant, with an initial location within the environment.
     pub fn new(
         location: Location,
@@ -88,7 +87,7 @@ impl Ant {
     }
 }
 
-impl Entity<'static> for Ant {
+impl<'a> Entity<'a> for Ant<'a> {
     type Id = Id;
     type Kind = Kind;
     type Context = Context;
@@ -137,20 +136,18 @@ impl Entity<'static> for Ant {
     ) -> Result<(), Self::Error> {
         // given the scope of the Ant, we expect the seeable portion of the
         // environment to be just the tile where the Ant is currently located
-        let neighborhood = neighborhood.expect("Unexpected neighborhood");
-        let tile = neighborhood.center();
+        let mut neighborhood = neighborhood.expect("Unexpected neighborhood");
+        let tile = neighborhood.center_mut();
         // the tile in question can either be BLACK or WHITE, we encode this
         // information with a Cell entity or no entity respectively
-        let entities = tile.entities();
-        let black_cell =
-            entities.iter().find(|e| e.borrow().kind() == Kind::Cell);
+        let mut entities = tile.entities_mut();
+        let black_cell = entities.find(|e| e.kind() == Kind::Cell);
 
         if let Some(cell) = black_cell {
             // if the cell is BLACK, we flip its color by "killing" the entity
             // reducing its lifespan to 0 and move left
-            let mut c = cell.borrow_mut();
-            debug_assert_eq!(c.location(), self.location());
-            let lifespan = c.lifespan_mut().expect("Invalid Cell lifespan");
+            debug_assert_eq!(cell.location(), self.location());
+            let lifespan = cell.lifespan_mut().expect("Invalid Cell lifespan");
             lifespan.clear();
 
             self.turn_left_and_move_forward();
@@ -175,7 +172,7 @@ impl Entity<'static> for Ant {
         &mut self,
     ) -> Option<
         Offspring<
-            'static,
+            'a,
             Self::Id,
             Self::Kind,
             Self::Context,
