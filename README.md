@@ -17,7 +17,7 @@ after generation.
     cargo run --release --example langton
     ```
 
-    ![langton preview](examples/langton/langton.gif)
+    ![langton preview](../assets/langton.gif)
 
  - [Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life)
 
@@ -25,7 +25,7 @@ after generation.
     cargo run --release --example life
     ```
 
-    ![life preview](examples/life/life.gif)
+    ![life preview](../assets/life.gif)
 
 
  - [Wireworld](https://en.wikipedia.org/wiki/Wireworld)
@@ -34,7 +34,7 @@ after generation.
     cargo run --release --example wireworld
     ```
 
-    ![wireworld preview](examples/wireworld/wireworld.gif)
+    ![wireworld preview](../assets/wireworld.gif)
 
 
 
