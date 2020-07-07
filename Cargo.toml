@@ -1,6 +1,6 @@
 [package]
 name = "semeion"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Marco Conte <gliderkite@gmail.com>"]
 edition = "2018"
 description = "A generic 2D environment simulator"
@@ -24,6 +24,9 @@ name = "wireworld"
 
 [[example]]
 name = "mandelbrot"
+
+[[example]]
+name = "camera"
 
 [dev-dependencies]
 ggez = "0.5"

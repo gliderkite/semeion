@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::collections::HashSet;
 use std::rc::Weak;
 
-use super::{Id, Kind};
+use super::Kind;
 use crate::env;
 use semeion::*;
 
@@ -25,7 +25,7 @@ pub struct Cell<'a> {
     lifespan: Lifespan,
     // all the Cells share the same Mesh
     mesh: &'a graphics::Mesh,
-    offspring: Offspring<'a, Id, Kind, Context, graphics::DrawParam, GameError>,
+    offspring: Offspring<'a, Kind, Context>,
     visited: Weak<RefCell<HashSet<Location>>>,
 }
 
@@ -53,14 +53,11 @@ impl<'a> Cell<'a> {
 }
 
 impl<'a> Entity<'a> for Cell<'a> {
-    type Id = Id;
     type Kind = Kind;
     type Context = Context;
-    type Transform = graphics::DrawParam;
-    type Error = GameError;
 
-    fn id(&self) -> &Self::Id {
-        &self.id
+    fn id(&self) -> Id {
+        self.id
     }
 
     fn kind(&self) -> Self::Kind {
@@ -94,16 +91,8 @@ impl<'a> Entity<'a> for Cell<'a> {
     ///     dead cells stay dead.
     fn react(
         &mut self,
-        neighborhood: Option<
-            NeighborHood<
-                Self::Id,
-                Self::Kind,
-                Self::Context,
-                Self::Transform,
-                Self::Error,
-            >,
-        >,
-    ) -> Result<(), Self::Error> {
+        neighborhood: Option<Neighborhood<Self::Kind, Self::Context>>,
+    ) -> Result<(), Error> {
         // given the scope of the Cell (= 2) we expect a valid neighborhood
         let neighborhood = neighborhood.expect("Invalid neighborhood");
         // a Scope = 1 allows to query the cells in the immediate surroundings
@@ -177,16 +166,7 @@ impl<'a> Entity<'a> for Cell<'a> {
 
     fn offspring(
         &mut self,
-    ) -> Option<
-        Offspring<
-            'a,
-            Self::Id,
-            Self::Kind,
-            Self::Context,
-            Self::Transform,
-            Self::Error,
-        >,
-    > {
+    ) -> Option<Offspring<'a, Self::Kind, Self::Context>> {
         // release the offspring (if any) to the environment
         Some(self.offspring.drain())
     }
@@ -194,18 +174,20 @@ impl<'a> Entity<'a> for Cell<'a> {
     fn draw(
         &self,
         ctx: &mut Self::Context,
-        transform: &Self::Transform,
-    ) -> Result<(), Self::Error> {
+        transform: Transform,
+    ) -> Result<(), Error> {
         // Draw the shape of the Cell without taking into consideration the
         // given transformation (that is always going to be equal to the Identity
         // matrix) since for the purposes of this simulation neither zoom or
         // panning are supported.
-        debug_assert_eq!(transform, &graphics::DrawParam::default());
+        debug_assert_eq!(transform, Transform::identity());
 
         // coordinate in pixels of the top-left corner of the mesh
         let offset = self.location.to_pixel_coords(env::SIDE);
         let offset = Point2::new(offset.x, offset.y);
 
-        graphics::draw(ctx, self.mesh, transform.dest(offset))
+        let param = graphics::DrawParam::default();
+        graphics::draw(ctx, self.mesh, param.dest(offset))
+            .map_err(Error::with_message)
     }
 }

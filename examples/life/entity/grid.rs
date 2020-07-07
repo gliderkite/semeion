@@ -2,12 +2,9 @@ use ggez::graphics;
 use ggez::nalgebra::Point2;
 use ggez::{Context, GameError};
 
-use super::{Id, Kind};
+use super::Kind;
 use crate::env;
 use semeion::*;
-
-/// The ID of the Grid.
-const ID: Id = -1;
 
 /// Constructs a new mesh for a Grid.
 pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {
@@ -42,19 +39,21 @@ pub struct Grid {
 impl Grid {
     /// Constructs a new grid with the same environment size.
     pub fn new(mesh: graphics::Mesh) -> Self {
-        Self { id: ID, mesh }
+        // IDs are simply randomly generated as the possibility of collisions
+        // are very very low
+        Self {
+            id: rand::random(),
+            mesh,
+        }
     }
 }
 
 impl<'a> Entity<'a> for Grid {
-    type Id = Id;
     type Kind = Kind;
     type Context = Context;
-    type Transform = graphics::DrawParam;
-    type Error = GameError;
 
-    fn id(&self) -> &Self::Id {
-        &self.id
+    fn id(&self) -> Id {
+        self.id
     }
 
     fn kind(&self) -> Self::Kind {
@@ -64,9 +63,10 @@ impl<'a> Entity<'a> for Grid {
     fn draw(
         &self,
         context: &mut Self::Context,
-        transform: &Self::Transform,
-    ) -> Result<(), Self::Error> {
-        debug_assert_eq!(transform, &graphics::DrawParam::default());
-        graphics::draw(context, &self.mesh, *transform)
+        transform: Transform,
+    ) -> Result<(), Error> {
+        debug_assert_eq!(transform, Transform::identity());
+        graphics::draw(context, &self.mesh, graphics::DrawParam::default())
+            .map_err(Error::with_message)
     }
 }

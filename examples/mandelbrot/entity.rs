@@ -1,14 +1,9 @@
-use ggez::graphics;
-use ggez::{Context, GameError};
+use ggez::Context;
 use num_complex::Complex;
 use std::any::Any;
 
 use crate::env;
 use semeion::*;
-
-/// The ID of the entities can represent the position in the space, since entities
-/// will always occupy the whole environment and never move.
-pub type Id = usize;
 
 /// The State of each Pixel Entity defines its color from an arbitrary palette
 /// of up to 256 colors.
@@ -68,6 +63,8 @@ impl State {
 
 #[derive(Debug)]
 pub struct Pixel {
+    // The ID of the entities can represent the position in the space, since
+    // entities will always occupy the whole environment and never move.
     id: Id,
     state: State,
     // the location of the entity relative to the Environment
@@ -86,14 +83,11 @@ impl Pixel {
 }
 
 impl<'a> Entity<'a> for Pixel {
-    type Id = Id;
     type Kind = ();
     type Context = Context;
-    type Transform = graphics::DrawParam;
-    type Error = GameError;
 
-    fn id(&self) -> &Self::Id {
-        &self.id
+    fn id(&self) -> Id {
+        self.id
     }
 
     fn kind(&self) -> Self::Kind {}
@@ -112,16 +106,8 @@ impl<'a> Entity<'a> for Pixel {
 
     fn react(
         &mut self,
-        _: Option<
-            NeighborHood<
-                Self::Id,
-                Self::Kind,
-                Self::Context,
-                Self::Transform,
-                Self::Error,
-            >,
-        >,
-    ) -> Result<(), Self::Error> {
+        _: Option<Neighborhood<Self::Kind, Self::Context>>,
+    ) -> Result<(), Error> {
         // compute the next value of the pixel state according to its escape time
         let time = self.state.escape_time(env::ESCAPE_TIME_LIMIT);
         self.state.value = if let Some(time) = time {

@@ -2,11 +2,11 @@ use super::*;
 
 /// The Entity offspring, represented as a list of heap allocated Entity traits.
 #[derive(Debug)]
-pub struct Offspring<'e, I, K, C, T, E> {
-    entities: Vec<Box<entity::Trait<'e, I, K, C, T, E>>>,
+pub struct Offspring<'e, K, C> {
+    entities: Vec<Box<entity::Trait<'e, K, C>>>,
 }
 
-impl<'e, I, K, C, T, E> Default for Offspring<'e, I, K, C, T, E> {
+impl<'e, K, C> Default for Offspring<'e, K, C> {
     /// Gets an empty Offspring.
     fn default() -> Self {
         Self {
@@ -15,12 +15,11 @@ impl<'e, I, K, C, T, E> Default for Offspring<'e, I, K, C, T, E> {
     }
 }
 
-impl<'e, I, K, C, T, E> Offspring<'e, I, K, C, T, E> {
+impl<'e, K, C> Offspring<'e, K, C> {
     /// Adds a new Entity to the Offspring.
     pub fn insert<Q>(&mut self, entity: Q)
     where
-        Q: Entity<'e, Id = I, Kind = K, Context = C, Transform = T, Error = E>
-            + 'e,
+        Q: Entity<'e, Kind = K, Context = C> + 'e,
     {
         self.entities.push(Box::new(entity));
     }
@@ -34,9 +33,7 @@ impl<'e, I, K, C, T, E> Offspring<'e, I, K, C, T, E> {
     }
 
     /// Takes the entities out of the Offspring.
-    pub(crate) fn take_entities(
-        self,
-    ) -> Vec<Box<entity::Trait<'e, I, K, C, T, E>>> {
+    pub(crate) fn take_entities(self) -> Vec<Box<entity::Trait<'e, K, C>>> {
         self.entities
     }
 }

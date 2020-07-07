@@ -1,14 +1,10 @@
 //! https://en.wikipedia.org/wiki/Mandelbrot_set
 
-#![allow(clippy::type_complexity)]
-
-use ggez::graphics;
 use ggez::input::keyboard::{KeyCode, KeyMods};
 use ggez::input::mouse::MouseButton;
 use ggez::*;
 use num_complex::Complex;
 
-use entity::*;
 use semeion::*;
 
 mod entity;
@@ -19,7 +15,7 @@ struct GameState<'a> {
     // precise the region of the Mandelbrot set that will be displayed, where
     // each Entity occupies always the same tile, and represents a single pixel
     // of the image (and its status will determine its color).
-    env: Environment<'a, Id, (), Context, graphics::DrawParam, GameError>,
+    env: Environment<'a, (), Context>,
     // The current visible complex plane bounds.
     plane: env::Plane,
     // The area of the complex region we want to zoom into.
@@ -70,17 +66,20 @@ impl<'a> event::EventHandler for GameState<'a> {
         // represents in the complex plane, according to the current visible
         // plane bounds
         let plane = self.plane;
-        self.env.nextgen_with(|e| {
-            if let (Some(loc), Some(state)) = (e.location(), e.state_mut()) {
-                let state = state
-                    .as_any_mut()
-                    .downcast_mut::<entity::State>()
-                    .expect("Invalid state");
-                let point = env::location_to_point(loc, plane);
-                state.set_point(point);
-            }
-            Ok(())
-        })?;
+        self.env
+            .nextgen_with(|e| {
+                if let (Some(loc), Some(state)) = (e.location(), e.state_mut())
+                {
+                    let state = state
+                        .as_any_mut()
+                        .downcast_mut::<entity::State>()
+                        .expect("Invalid state");
+                    let point = env::location_to_point(loc, plane);
+                    state.set_point(point);
+                }
+                Ok(())
+            })
+            .expect("Cannot move to the next generation");
 
         // iterate over each pixel to get its current state and its RGBA value
         // that will be pushed into the new image data

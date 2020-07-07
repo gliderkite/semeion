@@ -1,7 +1,5 @@
 //! https://en.wikipedia.org/wiki/Langton%27s_ant
-#![allow(clippy::type_complexity)]
 
-use ggez::graphics;
 use ggez::*;
 use semeion::*;
 
@@ -12,7 +10,7 @@ mod env;
 
 struct GameState<'a> {
     // the environment where the simulation takes place
-    env: Environment<'a, Id, Kind, Context, graphics::DrawParam, GameError>,
+    env: Environment<'a, Kind, Context>,
 }
 
 impl<'a> GameState<'a> {
@@ -47,14 +45,18 @@ impl<'a> GameState<'a> {
 impl<'a> event::EventHandler for GameState<'a> {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         while timer::check_update_time(ctx, 60) {
-            self.env.nextgen()?;
+            self.env
+                .nextgen()
+                .expect("Cannot move to the next generation");
         }
         Ok(())
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, [0.9, 0.9, 0.9, 1.0].into());
-        self.env.draw(ctx, &graphics::DrawParam::default())?;
+        self.env
+            .draw(ctx, Transform::identity())
+            .expect("Cannot draw the environment");
         self.display_stats(ctx)?;
         graphics::present(ctx)?;
         timer::yield_now();

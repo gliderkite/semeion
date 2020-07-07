@@ -4,78 +4,73 @@ use super::*;
 
 /// The neighbor tiles of a specific Entity.
 #[derive(Debug)]
-pub struct NeighborHood<'a, 'e, I, K, C, T, E> {
+pub struct Neighborhood<'a, 'e, K, C> {
     dimension: Dimension,
-    tiles: Vec<TileView<'a, 'e, I, K, C, T, E>>,
+    tiles: Vec<TileView<'a, 'e, K, C>>,
 }
 
-impl<'a, 'e, I, K, C, T, E> NeighborHood<'a, 'e, I, K, C, T, E> {
+impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
     /// Gets the dimension of this neighborhood.
     pub fn dimension(&self) -> Dimension {
         self.dimension
     }
 
-    /// Gets an iterator over the Tiles that belong to this NeighborHood.
-    pub fn tiles(
-        &self,
-    ) -> impl Iterator<Item = &TileView<'a, 'e, I, K, C, T, E>> {
+    /// Gets an iterator over the Tiles that belong to this Neighborhood.
+    pub fn tiles(&self) -> impl Iterator<Item = &TileView<'a, 'e, K, C>> {
         self.tiles.iter()
     }
 
-    /// Gets an iterator over the mutable Tiles that belong to this NeighborHood.
+    /// Gets an iterator over the mutable Tiles that belong to this Neighborhood.
     pub fn tiles_mut(
         &mut self,
-    ) -> impl Iterator<Item = &mut TileView<'a, 'e, I, K, C, T, E>> {
+    ) -> impl Iterator<Item = &mut TileView<'a, 'e, K, C>> {
         self.tiles.iter_mut()
     }
 
     /// Gets a reference to the Tile located at the given offset from the center
-    /// of this NeighborHood. The NeighborHood is seen as a Torus from this method,
+    /// of this Neighborhood. The Neighborhood is seen as a Torus from this method,
     /// therefore, out of bounds offsets will be translated considering that
-    /// the NeighborHood edges are joined.
-    pub fn tile(&self, offset: Offset) -> &TileView<'a, 'e, I, K, C, T, E> {
+    /// the Neighborhood edges are joined.
+    pub fn tile(&self, offset: Offset) -> &TileView<'a, 'e, K, C> {
         &self.tiles[self.index(offset)]
     }
 
     /// Gets a mutable reference to the Tile located at the given offset from
-    /// the center of this NeighborHood. The NeighborHood is seen as a Torus
+    /// the center of this Neighborhood. The Neighborhood is seen as a Torus
     /// from this method,therefore, out of bounds offsets will be translated
-    /// considering that the NeighborHood edges are joined.
-    pub fn tile_mut(
-        &mut self,
-        offset: Offset,
-    ) -> &mut TileView<'a, 'e, I, K, C, T, E> {
+    /// considering that the Neighborhood edges are joined.
+    pub fn tile_mut(&mut self, offset: Offset) -> &mut TileView<'a, 'e, K, C> {
         debug_assert!(!self.tiles.is_empty());
         let index = self.index(offset);
         &mut self.tiles[index]
     }
 
-    /// Gets a reference to the Tile located in the center of this NeighborHood.
-    pub fn center(&self) -> &TileView<'a, 'e, I, K, C, T, E> {
+    /// Gets a reference to the Tile located in the center of this Neighborhood.
+    pub fn center(&self) -> &TileView<'a, 'e, K, C> {
         self.tile(Offset::origin())
     }
 
     /// Gets a mutable reference to the Tile located in the center of this
-    /// NeighborHood.
-    pub fn center_mut(&mut self) -> &mut TileView<'a, 'e, I, K, C, T, E> {
+    /// Neighborhood.
+    pub fn center_mut(&mut self) -> &mut TileView<'a, 'e, K, C> {
         self.tile_mut(Offset::origin())
     }
 
-    /// Gets a list of tiles that surround the Tile T of this NeighborHood,
+    /// Gets a list of tiles that surround the Tile T of this Neighborhood,
     /// located at a given Offset from the center Tile, and according to the
     /// given Scope, that represents the distance from the Tile T.
     /// The tiles are returned in arbitrary order. Returns None if any of the
-    /// border tiles is out of the NeighborHood dimension for the given Scope.
+    /// border tiles is out of the Neighborhood dimension for the given Scope.
     pub fn border(
         &self,
         offset: Offset,
         scope: Scope,
-    ) -> Option<Vec<&TileView<'a, 'e, I, K, C, T, E>>> {
-        // the location of the tile T relative to the center of the NeighborHood
+    ) -> Option<Vec<&TileView<'a, 'e, K, C>>> {
+        // the location of the tile T relative to the center of the Neighborhood
         let loc = self.dimension.center() + offset;
 
         // iterate over the 4 corners surrounding the tile T to check if
-        // the whole border of the tile T is contained within this NeighborHood
+        // the whole border of the tile T is contained within this Neighborhood
         // according to the given scope
         for &delta in &Offset::corners(scope) {
             if !self.dimension.contains(loc + delta) {
@@ -95,9 +90,9 @@ impl<'a, 'e, I, K, C, T, E> NeighborHood<'a, 'e, I, K, C, T, E> {
     }
 
     /// Gets the index of the Tile located at the given offset from the center
-    /// of this NeighborHood. The NeighborHood is seen as a Torus from this
+    /// of this Neighborhood. The Neighborhood is seen as a Torus from this
     /// method, therefore, out of bounds offsets will be translated
-    /// considering that the NeighborHood edges are joined.
+    /// considering that the Neighborhood edges are joined.
     fn index(&self, offset: Offset) -> usize {
         debug_assert!(!self.tiles.is_empty());
         let mut center = self.dimension.center();
@@ -108,21 +103,21 @@ impl<'a, 'e, I, K, C, T, E> NeighborHood<'a, 'e, I, K, C, T, E> {
         index
     }
 
-    /// Returns true only if this NeighborHood contains unique Tiles.
+    /// Returns true only if this Neighborhood contains unique Tiles.
     fn is_unique(&self) -> bool {
         let mut uniq = HashSet::with_capacity(self.tiles.len());
-        self.tiles.iter().all(move |tile| {
-            uniq.insert(tile.inner() as *const Tile<'e, I, K, C, T, E>)
-        })
+        self.tiles
+            .iter()
+            .all(move |tile| uniq.insert(tile.inner() as *const Tile<'e, K, C>))
     }
 }
 
-impl<'a, 'e, I, K, C, T, E> From<Vec<TileView<'a, 'e, I, K, C, T, E>>>
-    for NeighborHood<'a, 'e, I, K, C, T, E>
+impl<'a, 'e, K, C> From<Vec<TileView<'a, 'e, K, C>>>
+    for Neighborhood<'a, 'e, K, C>
 {
-    /// Constructs a new NeighborHood from a list of tiles that can encode a
+    /// Constructs a new Neighborhood from a list of tiles that can encode a
     /// squared grid.
-    fn from(tiles: Vec<TileView<'a, 'e, I, K, C, T, E>>) -> Self {
+    fn from(tiles: Vec<TileView<'a, 'e, K, C>>) -> Self {
         debug_assert!(!tiles.is_empty());
         let length = tiles.len() as f64;
         // NeighborHoods can only be constructed if they represent squares

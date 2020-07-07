@@ -11,7 +11,7 @@ pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {
     let mut mesh = graphics::MeshBuilder::new();
     let size = env::size();
     let dimension = env::dimension();
-    let stroke_width = 0.5;
+    let stroke_width = 2.0;
     let color = graphics::BLACK;
 
     // horizontal lines
@@ -39,8 +39,6 @@ pub struct Grid {
 impl Grid {
     /// Constructs a new grid with the same environment size.
     pub fn new(mesh: graphics::Mesh) -> Self {
-        // IDs are simply randomly generated as the possibility of collisions
-        // are very very low
         Self {
             id: rand::random(),
             mesh,
@@ -62,11 +60,16 @@ impl<'a> Entity<'a> for Grid {
 
     fn draw(
         &self,
-        context: &mut Self::Context,
+        ctx: &mut Self::Context,
         transform: Transform,
     ) -> Result<(), Error> {
-        debug_assert_eq!(transform, Transform::identity());
-        graphics::draw(context, &self.mesh, graphics::DrawParam::default())
-            .map_err(Error::with_message)
+        graphics::push_transform(ctx, Some(transform.to_column_matrix4()));
+        graphics::apply_transformations(ctx).map_err(Error::with_message)?;
+
+        graphics::draw(ctx, &self.mesh, graphics::DrawParam::default())
+            .map_err(Error::with_message)?;
+
+        graphics::pop_transform(ctx);
+        graphics::apply_transformations(ctx).map_err(Error::with_message)
     }
 }

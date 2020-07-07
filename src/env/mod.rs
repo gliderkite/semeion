@@ -13,34 +13,27 @@ pub use tile::TileView;
 
 /// Unordered map of entities identified by their IDs, where all the entities
 /// belongs to the same Kind.
-type Entities<'e, I, K, C, T, E> =
-    HashMap<I, Box<entity::Trait<'e, I, K, C, T, E>>>;
+type Entities<'e, K, C> = HashMap<Id, Box<entity::Trait<'e, K, C>>>;
 
 /// Sorted map of all the entities by Kind.
-type EntitiesKinds<'e, I, K, C, T, E> =
-    BTreeMap<K, Entities<'e, I, K, C, T, E>>;
+type EntitiesKinds<'e, K, C> = BTreeMap<K, Entities<'e, K, C>>;
 
 /// Closure over a mutable Entity reference.
-type EntityClosure<'e, I, K, C, T, E> =
-    dyn Fn(&mut entity::Trait<'e, I, K, C, T, E>) -> Result<(), E>;
+type EntityClosure<'e, K, C> =
+    dyn Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error>;
 
 /// The Environment is a grid, of squared tiles with the same size, where all
-/// the entities belongs. The Environment acts both as the data structure as
-/// well as the engine that controls the behavior of all the entities in it,
-/// and their interaction for each generation. Where both of those are defined
-/// by the user, and handled via the Entity trait method called for each entity
-/// by the environment generation after generation.
-/// An environment can contains entities of different kinds, dynamically
-/// allocated and defined according to the user needs via the Entity trait, but
-/// all the entities must share the same Entity trait associated types.
+/// the entities belong. The Environment acts both as the data structure as
+/// well as the engine that gives life to all the entities in it, and allows
+/// their interaction for every generation. Where the behavior of each Entity is
+/// defined by the user, via the Entity trait.
+/// An environment can contains entities of different kinds.
 /// The Environment can be created with specific dimension, that represents the
-/// size of the grid that describes its geometry (the Dimension can be computed
-/// from the window size in pixels where the environment will be drawn for a
-/// specific length of the grid tiles side).
-/// Once the environment is initialized by inserting entities in its initial
+/// size of the grid that describes its geometry.
+/// Once the Environment is initialized by inserting entities as its initial
 /// population, it can be drawn by drawing all its entities, and it is possible
-/// to move to the next generation (where the interaction between the entities
-/// takes place).
+/// to move to the next generation (allowing the interaction between the entities
+/// to take place).
 /// The geometry of the environment is defined as a Torus, that is, the grid
 /// dimension are adjacent to each other, allowing therefore the entities to move
 /// past each dimension into the next tile as if there were no limits.
@@ -49,36 +42,35 @@ type EntityClosure<'e, I, K, C, T, E> =
 /// owned by the environment, and it must be the same lifetime for all the
 /// entities types that implement the Entity trait. This lifetime defines the
 /// bound for the objects (immutable references lifetimes) that implement the
-/// Entity trait, and it allows to propagate the bound to the entities Offspring.
+/// Entity trait, and it allows to propagate the same bound to the entities
+/// Offspring.
 #[derive(Debug)]
-pub struct Environment<'e, I, K, C, T, E> {
+pub struct Environment<'e, K, C> {
     // the list of strong references to the entities
-    entities: EntitiesKinds<'e, I, K, C, T, E>,
+    entities: EntitiesKinds<'e, K, C>,
     // the (1-dimensional) grid of tiles that stores week references to the
     // entities according to their location
-    tiles: Tiles<'e, I, K, C, T, E>,
+    tiles: Tiles<'e, K, C>,
     // the environment dimension
     dimension: Dimension,
     // the latest snapshot of the environment, used to update the entities
     // properties within it at each generation
-    snapshots: Vec<Snapshot<I, K>>,
+    snapshots: Vec<Snapshot<K>>,
     // the generation counter
     generation: u64,
 }
 
 #[derive(Debug)]
-struct Snapshot<I, K> {
-    id: I,
+struct Snapshot<K> {
+    id: Id,
     kind: K,
     location: Location,
 }
 
-impl<'e, I: Eq + Hash + Clone, K: Hash + Ord, C, T, E>
-    Environment<'e, I, K, C, T, E>
-{
-    /// Constructs a new environment with the given dimension. The dimension represent
-    /// the size of the grids of squared tiles of same side length, as number of
-    /// columns and rows.
+impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
+    /// Constructs a new environment with the given dimension. The dimension
+    /// represent the size of the grid of squared tiles of same side length, as
+    /// number of columns and rows.
     pub fn new(dimension: Dimension) -> Self {
         Self {
             entities: BTreeMap::new(),
@@ -97,8 +89,7 @@ impl<'e, I: Eq + Hash + Clone, K: Hash + Ord, C, T, E>
     /// and decrease, or generated offspring).
     pub fn insert<Q>(&mut self, entity: Q)
     where
-        Q: Entity<'e, Id = I, Kind = K, Context = C, Transform = T, Error = E>
-            + 'e,
+        Q: Entity<'e, Kind = K, Context = C> + 'e,
     {
         self.insert_entity(Box::new(entity));
     }
@@ -107,7 +98,7 @@ impl<'e, I: Eq + Hash + Clone, K: Hash + Ord, C, T, E>
     /// kind, and calling the draw method for each one of them. Returns an error
     /// if any of the draw methods returns an error. The order of draw calls for
     /// each entity of the same type is arbitrary.
-    pub fn draw(&self, ctx: &mut C, transform: &T) -> Result<(), E> {
+    pub fn draw(&self, ctx: &mut C, transform: Transform) -> Result<(), Error> {
         for entities in self.entities.values() {
             for entity in entities.values() {
                 entity.draw(ctx, transform)?;
@@ -140,7 +131,7 @@ impl<'e, I: Eq + Hash + Clone, K: Hash + Ord, C, T, E>
     pub fn entities(
         &self,
         kind: &K,
-    ) -> Option<impl Iterator<Item = &entity::Trait<'e, I, K, C, T, E>>> {
+    ) -> Option<impl Iterator<Item = &entity::Trait<'e, K, C>>> {
         self.entities
             .get(kind)
             .map(|entities| entities.values().map(|e| &**e))
@@ -153,7 +144,7 @@ impl<'e, I: Eq + Hash + Clone, K: Hash + Ord, C, T, E>
     pub fn entities_at(
         &self,
         location: Location,
-    ) -> impl Iterator<Item = &entity::Trait<'e, I, K, C, T, E>> {
+    ) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
         self.tiles.entities_at(location)
     }
 
@@ -173,8 +164,8 @@ impl<'e, I: Eq + Hash + Clone, K: Hash + Ord, C, T, E>
     /// This method will return an error if any of the calls to `Entity::observe()`
     /// or `Entity::act()` returns an error, in which case none of the steps that
     /// involve the update of the environment will take place.
-    pub fn nextgen(&mut self) -> Result<(), E> {
-        self.next(Option::<&EntityClosure<'e, I, K, C, T, E>>::None)
+    pub fn nextgen(&mut self) -> Result<(), Error> {
+        self.next(Option::<&EntityClosure<'e, K, C>>::None)
     }
 
     /// Moves forwards to the next generation.
@@ -184,21 +175,21 @@ impl<'e, I: Eq + Hash + Clone, K: Hash + Ord, C, T, E>
     /// of each entity.
     /// Returns an error if any of the calls to the provided closure returns an
     /// error.
-    pub fn nextgen_with<F>(&mut self, entity_func: F) -> Result<(), E>
+    pub fn nextgen_with<F>(&mut self, entity_func: F) -> Result<(), Error>
     where
-        F: Fn(&mut entity::Trait<'e, I, K, C, T, E>) -> Result<(), E>,
+        F: Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error>,
     {
         self.next(Some(entity_func))
     }
 
     /// Moves forwards to the next generation.
-    fn next<F>(&mut self, entity_func: Option<F>) -> Result<(), E>
+    fn next<F>(&mut self, entity_func: Option<F>) -> Result<(), Error>
     where
-        F: Fn(&mut entity::Trait<'e, I, K, C, T, E>) -> Result<(), E>,
+        F: Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error>,
     {
-        self.record_snapshot();
+        self.record_location();
         self.observe_and_react(entity_func)?;
-        self.update();
+        self.update_location();
 
         // take care of newborns entities by inserting them in the environment,
         // as well as removing entities that reached the end of their lifespan
@@ -210,20 +201,17 @@ impl<'e, I: Eq + Hash + Clone, K: Hash + Ord, C, T, E>
     }
 
     /// Inserts a new entity in the environment according to its location.
-    fn insert_entity(
-        &mut self,
-        mut entity: Box<entity::Trait<'e, I, K, C, T, E>>,
-    ) {
+    fn insert_entity(&mut self, mut entity: Box<entity::Trait<'e, K, C>>) {
         // insert the weak ref in the grid according to the entity location
         self.tiles.insert(&mut *entity);
         // insert the strong ref in the entities map
         let entities = self.entities.entry(entity.kind()).or_default();
-        entities.insert(entity.id().clone(), entity);
+        entities.insert(entity.id(), entity);
     }
 
     /// Takes a snapshot of the environment by storing the entities fields that
     /// are going to be updated before moving forward to the next generation.
-    fn record_snapshot(&mut self) {
+    fn record_location(&mut self) {
         self.snapshots.clear();
         let additional = self.count().saturating_sub(self.snapshots.capacity());
         self.snapshots.reserve(additional);
@@ -234,7 +222,7 @@ impl<'e, I: Eq + Hash + Clone, K: Hash + Ord, C, T, E>
                 // the environment
                 if let Some(location) = entity.location() {
                     self.snapshots.push(Snapshot {
-                        id: entity.id().clone(),
+                        id: entity.id(),
                         kind: entity.kind(),
                         location,
                     });
@@ -245,7 +233,7 @@ impl<'e, I: Eq + Hash + Clone, K: Hash + Ord, C, T, E>
 
     /// Updates the environment according to the current entities and previously
     /// taken snapshot.
-    fn update(&mut self) {
+    fn update_location(&mut self) {
         for snapshot in &self.snapshots {
             // gets the current entity location
             let get_location = || {
@@ -257,7 +245,7 @@ impl<'e, I: Eq + Hash + Clone, K: Hash + Ord, C, T, E>
             // update the entity location in the grid of tiles
             if let Some(location) = get_location() {
                 self.tiles
-                    .relocate(&snapshot.id, snapshot.location, location);
+                    .relocate(snapshot.id, snapshot.location, location);
             }
         }
     }
@@ -266,7 +254,7 @@ impl<'e, I: Eq + Hash + Clone, K: Hash + Ord, C, T, E>
     /// in the environment.
     fn populate_with_offspring(&mut self) {
         // gets a list of all the entities offsprings
-        let offspring: Vec<Box<entity::Trait<'e, I, K, C, T, E>>> = self
+        let offspring: Vec<Box<entity::Trait<'e, K, C>>> = self
             .entities
             .values_mut()
             .map(|e| e.values_mut())
@@ -317,9 +305,12 @@ impl<'e, I: Eq + Hash + Clone, K: Hash + Ord, C, T, E>
     ///     allowing each entity to react to the same portion of the environment.
     /// Returns an error if any of the calls to `Entity::observe()`,
     /// `Entity::react()`, or the provided closure returns an error.
-    fn observe_and_react<F>(&mut self, entity_func: Option<F>) -> Result<(), E>
+    fn observe_and_react<F>(
+        &mut self,
+        entity_func: Option<F>,
+    ) -> Result<(), Error>
     where
-        F: Fn(&mut entity::Trait<'e, I, K, C, T, E>) -> Result<(), E>,
+        F: Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error>,
     {
         // if specified, calls the given closure for each entity
         if let Some(entity_func) = entity_func {

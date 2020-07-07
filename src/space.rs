@@ -30,7 +30,7 @@ pub type Offset = Point<i32>;
 
 /// Represents the location of an entity within the environment expressed in
 /// pixel coordinates.
-pub type PixelCoordinate = Point<f32>;
+pub type Coordinate = Point<f32>;
 
 /// The scope of an Entity, defined as the maximum distance between the tile
 /// where the Entity is located, and the farthest possible tile the Entity can
@@ -38,7 +38,7 @@ pub type PixelCoordinate = Point<f32>;
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Scope(usize);
 
-impl PixelCoordinate {
+impl Coordinate {
     /// Gets the origin coordinates in (0.0, 0.0).
     pub const fn origin() -> Self {
         Self { x: 0.0, y: 0.0 }
@@ -53,8 +53,8 @@ impl Location {
 
     /// Converts the Point into a point expressed as pixel coordinates, according
     /// to the length of each grid square side.
-    pub fn to_pixel_coords(self, side: f32) -> PixelCoordinate {
-        PixelCoordinate {
+    pub fn to_pixel_coords(self, side: f32) -> Coordinate {
+        Coordinate {
             x: self.x as f32 * side,
             y: self.y as f32 * side,
         }
@@ -135,6 +135,14 @@ impl Offset {
 }
 
 impl Size {
+    /// Gets the Coordinate of the center of this Size.
+    pub fn center(self) -> Coordinate {
+        Coordinate {
+            x: self.width / 2.0,
+            y: self.height / 2.0,
+        }
+    }
+
     /// Converts the Size to a Dimension according to the given side length.
     pub fn to_dimension(self, side: f32) -> Dimension {
         Dimension {

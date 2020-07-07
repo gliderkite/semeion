@@ -1,8 +1,5 @@
 //! https://en.wikipedia.org/wiki/Wireworld
 
-#![allow(clippy::type_complexity)]
-
-use ggez::graphics;
 use ggez::*;
 use semeion::*;
 use std::collections::HashMap;
@@ -17,7 +14,7 @@ mod pattern;
 
 struct GameState<'a> {
     // the environment where the simulation takes place
-    env: Environment<'a, Id, Kind, Context, graphics::DrawParam, GameError>,
+    env: Environment<'a, Kind, Context>,
 }
 
 /// Cache of mashes per Cell state.
@@ -67,14 +64,18 @@ impl<'a> GameState<'a> {
 impl<'a> event::EventHandler for GameState<'a> {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         while timer::check_update_time(ctx, 7) {
-            self.env.nextgen()?;
+            self.env
+                .nextgen()
+                .expect("Cannot move to the next generation");
         }
         Ok(())
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, graphics::BLACK);
-        self.env.draw(ctx, &graphics::DrawParam::default())?;
+        self.env
+            .draw(ctx, Transform::identity())
+            .expect("Cannot draw the environment");
         self.display_stats(ctx)?;
         graphics::present(ctx)?;
         timer::yield_now();

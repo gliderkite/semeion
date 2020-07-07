@@ -16,9 +16,6 @@
 //! the living cells to check if any of the cells in their border has been already
 //! visited during the current generation.
 
-#![allow(clippy::type_complexity)]
-
-use ggez::graphics;
 use ggez::*;
 use semeion::*;
 use std::cell::RefCell;
@@ -34,7 +31,7 @@ mod pattern;
 
 struct GameState<'a> {
     // the environment where the simulation takes place
-    env: Environment<'a, Id, Kind, Context, graphics::DrawParam, GameError>,
+    env: Environment<'a, Kind, Context>,
     // shared cache for already visited dead cells locations per generation
     visited: Rc<RefCell<HashSet<Location>>>,
 }
@@ -63,17 +60,19 @@ impl<'a> GameState<'a> {
 }
 
 impl<'a> event::EventHandler for GameState<'a> {
-    fn update(&mut self, ctx: &mut Context) -> GameResult {
-        while timer::check_update_time(ctx, 60) {
-            self.visited.borrow_mut().clear();
-            self.env.nextgen()?;
-        }
+    fn update(&mut self, _ctx: &mut Context) -> GameResult {
+        self.visited.borrow_mut().clear();
+        self.env
+            .nextgen()
+            .expect("Cannot move to the next generation");
         Ok(())
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, [0.9, 0.9, 0.9, 1.0].into());
-        self.env.draw(ctx, &graphics::DrawParam::default())?;
+        self.env
+            .draw(ctx, Transform::identity())
+            .expect("Cannot draw the environment");
         self.display_stats(ctx)?;
         graphics::present(ctx)?;
         timer::yield_now();

@@ -2,7 +2,7 @@ use ggez::graphics;
 use ggez::nalgebra::{Point2, Vector2};
 use ggez::{Context, GameError};
 
-use super::{Cell, Id, Kind};
+use super::{Cell, Kind};
 use crate::env;
 use semeion::*;
 
@@ -40,7 +40,7 @@ pub struct Ant<'a> {
     location: Location,
     mesh: graphics::Mesh,
     offspring_mesh: graphics::Mesh,
-    offspring: Offspring<'a, Id, Kind, Context, graphics::DrawParam, GameError>,
+    offspring: Offspring<'a, Kind, Context>,
 }
 
 impl<'a> Ant<'a> {
@@ -88,14 +88,11 @@ impl<'a> Ant<'a> {
 }
 
 impl<'a> Entity<'a> for Ant<'a> {
-    type Id = Id;
     type Kind = Kind;
     type Context = Context;
-    type Transform = graphics::DrawParam;
-    type Error = GameError;
 
-    fn id(&self) -> &Self::Id {
-        &self.id
+    fn id(&self) -> Id {
+        self.id
     }
 
     fn kind(&self) -> Self::Kind {
@@ -124,16 +121,8 @@ impl<'a> Entity<'a> for Ant<'a> {
     ///     square, move forward one unit.
     fn react(
         &mut self,
-        neighborhood: Option<
-            NeighborHood<
-                Self::Id,
-                Self::Kind,
-                Self::Context,
-                Self::Transform,
-                Self::Error,
-            >,
-        >,
-    ) -> Result<(), Self::Error> {
+        neighborhood: Option<Neighborhood<Self::Kind, Self::Context>>,
+    ) -> Result<(), Error> {
         // given the scope of the Ant, we expect the seeable portion of the
         // environment to be just the tile where the Ant is currently located
         let mut neighborhood = neighborhood.expect("Unexpected neighborhood");
@@ -154,12 +143,8 @@ impl<'a> Entity<'a> for Ant<'a> {
         } else {
             // if the cell is WHITE, we flip its color by creating a new entity
             // as offspring for the next generation, and move right
-            let offspring_id = rand::random();
-            let black_cell = Cell::new(
-                offspring_id,
-                self.location,
-                self.offspring_mesh.clone(),
-            );
+            let black_cell =
+                Cell::new(self.location, self.offspring_mesh.clone());
             self.offspring.insert(black_cell);
 
             self.turn_right_and_move_forward();
@@ -170,16 +155,7 @@ impl<'a> Entity<'a> for Ant<'a> {
 
     fn offspring(
         &mut self,
-    ) -> Option<
-        Offspring<
-            'a,
-            Self::Id,
-            Self::Kind,
-            Self::Context,
-            Self::Transform,
-            Self::Error,
-        >,
-    > {
+    ) -> Option<Offspring<'a, Self::Kind, Self::Context>> {
         // release the offspring (if any) to the environment
         Some(self.offspring.drain())
     }
@@ -187,13 +163,13 @@ impl<'a> Entity<'a> for Ant<'a> {
     fn draw(
         &self,
         ctx: &mut Self::Context,
-        transform: &Self::Transform,
-    ) -> Result<(), Self::Error> {
+        transform: Transform,
+    ) -> Result<(), Error> {
         // Draw the shape of the Ant without taking into consideration the
         // given transformation (that is always going to be equal to the Identity
         // matrix) since for the purposes of this simulation neither zoom or
         // panning are supported.
-        debug_assert_eq!(transform, &graphics::DrawParam::default());
+        debug_assert_eq!(transform, Transform::identity());
 
         // the radius is equal to half the grid tiles side
         let radius = env::SIDE / 2.0;
@@ -203,6 +179,8 @@ impl<'a> Entity<'a> for Ant<'a> {
         // shift the center of the shape to the center of the tile
         let offset = location + Vector2::new(radius, radius);
 
-        graphics::draw(ctx, &self.mesh, transform.dest(offset))
+        let param = graphics::DrawParam::default();
+        graphics::draw(ctx, &self.mesh, param.dest(offset))
+            .map_err(Error::with_message)
     }
 }

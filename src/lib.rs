@@ -52,14 +52,14 @@
 //! engine of your preference.
 //! Check out the *examples* folder to see how to use the library.
 
-#![allow(clippy::type_complexity)]
-
-mod math;
-
 pub use entity::*;
 pub use env::*;
+pub use error::*;
+pub use math::*;
 pub use space::*;
 
 pub mod entity;
 pub mod env;
+pub mod error;
+pub mod math;
 pub mod space;

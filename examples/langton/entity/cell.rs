@@ -2,7 +2,7 @@ use ggez::graphics;
 use ggez::nalgebra::Point2;
 use ggez::{Context, GameError};
 
-use super::{Id, Kind};
+use super::Kind;
 use crate::env;
 use semeion::*;
 
@@ -25,9 +25,11 @@ pub struct Cell {
 
 impl Cell {
     /// Constructs a new Cell with the given ID.
-    pub fn new(id: Id, location: Location, mesh: graphics::Mesh) -> Self {
+    pub fn new(location: Location, mesh: graphics::Mesh) -> Self {
         Self {
-            id,
+            // IDs are simply randomly generated as the possibility of collisions
+            // are very very low
+            id: rand::random(),
             location,
             // the lifespan of a cell is immortal, until killed by the Ant
             lifespan: Lifespan::Immortal,
@@ -37,14 +39,11 @@ impl Cell {
 }
 
 impl<'a> Entity<'a> for Cell {
-    type Id = Id;
     type Kind = Kind;
     type Context = Context;
-    type Transform = graphics::DrawParam;
-    type Error = GameError;
 
-    fn id(&self) -> &Self::Id {
-        &self.id
+    fn id(&self) -> Id {
+        self.id
     }
 
     fn kind(&self) -> Self::Kind {
@@ -67,18 +66,20 @@ impl<'a> Entity<'a> for Cell {
     fn draw(
         &self,
         ctx: &mut Self::Context,
-        transform: &Self::Transform,
-    ) -> Result<(), Self::Error> {
+        transform: Transform,
+    ) -> Result<(), Error> {
         // Draw the shape of the Cell without taking into consideration the
         // given transformation (that is always going to be equal to the Identity
         // matrix) since for the purposes of this simulation neither zoom or
         // panning are supported.
-        debug_assert_eq!(transform, &graphics::DrawParam::default());
+        debug_assert_eq!(transform, Transform::identity());
 
         // coordinate in pixels of the top-left corner of the mesh
         let offset = self.location.to_pixel_coords(env::SIDE);
         let offset = Point2::new(offset.x, offset.y);
 
-        graphics::draw(ctx, &self.mesh, transform.dest(offset))
+        let param = graphics::DrawParam::default();
+        graphics::draw(ctx, &self.mesh, param.dest(offset))
+            .map_err(Error::with_message)
     }
 }

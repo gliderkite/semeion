@@ -9,6 +9,15 @@ after generation.
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 
+## Overview
+
+For an overview of what you can do, and how you can do it with this library, the
+best way to start is to have a look at the many [examples](#examples) that come
+with this project.
+Each of these aims to show a subset of the features set of `semeion`, while
+giving an example of how to make the best use of it.
+
+
 ## Examples
 
  - [Langton's Ant](https://en.wikipedia.org/wiki/Langton%27s_ant)

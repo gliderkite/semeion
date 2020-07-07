@@ -3,7 +3,7 @@ use ggez::nalgebra::Point2;
 use ggez::{Context, GameError};
 use std::any::Any;
 
-use super::{Id, Kind};
+use super::Kind;
 use crate::{env, Meshes};
 use semeion::*;
 
@@ -100,14 +100,11 @@ impl<'a> Cell<'a> {
 }
 
 impl<'a> Entity<'a> for Cell<'a> {
-    type Id = Id;
     type Kind = Kind;
     type Context = Context;
-    type Transform = graphics::DrawParam;
-    type Error = GameError;
 
-    fn id(&self) -> &Self::Id {
-        &self.id
+    fn id(&self) -> Id {
+        self.id
     }
 
     fn kind(&self) -> Self::Kind {
@@ -136,16 +133,8 @@ impl<'a> Entity<'a> for Cell<'a> {
     ///     cells are electron heads, otherwise remains conductor.
     fn observe(
         &mut self,
-        neighborhood: Option<
-            NeighborHood<
-                Self::Id,
-                Self::Kind,
-                Self::Context,
-                Self::Transform,
-                Self::Error,
-            >,
-        >,
-    ) -> Result<(), Self::Error> {
+        neighborhood: Option<Neighborhood<Self::Kind, Self::Context>>,
+    ) -> Result<(), Error> {
         self.state.next = match self.state.current {
             State::ElectronHead => State::ElectronTail,
             State::ElectronTail => State::Conductor,
@@ -182,16 +171,8 @@ impl<'a> Entity<'a> for Cell<'a> {
 
     fn react(
         &mut self,
-        _: Option<
-            NeighborHood<
-                Self::Id,
-                Self::Kind,
-                Self::Context,
-                Self::Transform,
-                Self::Error,
-            >,
-        >,
-    ) -> Result<(), Self::Error> {
+        _: Option<Neighborhood<Self::Kind, Self::Context>>,
+    ) -> Result<(), Error> {
         // update the state of the Cell according to what was previously observed
         self.state.current = self.state.next;
         Ok(())
@@ -200,13 +181,13 @@ impl<'a> Entity<'a> for Cell<'a> {
     fn draw(
         &self,
         ctx: &mut Self::Context,
-        transform: &Self::Transform,
-    ) -> Result<(), Self::Error> {
+        transform: Transform,
+    ) -> Result<(), Error> {
         // Draw the shape of the Cell without taking into consideration the
         // given transformation (that is always going to be equal to the Identity
         // matrix) since for the purposes of this simulation neither zoom or
         // panning are supported.
-        debug_assert_eq!(transform, &graphics::DrawParam::default());
+        debug_assert_eq!(transform, Transform::identity());
 
         // coordinate in pixels of the top-left corner of the mesh
         let offset = self.location.to_pixel_coords(env::SIDE);
@@ -216,6 +197,9 @@ impl<'a> Entity<'a> for Cell<'a> {
             .meshes
             .get(self.state.current)
             .unwrap_or_else(|| panic!("No mesh for state {:?}", self.state));
-        graphics::draw(ctx, mesh, transform.dest(offset))
+
+        let param = graphics::DrawParam::default();
+        graphics::draw(ctx, mesh, param.dest(offset))
+            .map_err(Error::with_message)
     }
 }
