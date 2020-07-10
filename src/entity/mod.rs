@@ -17,13 +17,14 @@ pub mod state;
 pub type Id = usize;
 
 /// The Trait that describes a generic Entity.
+///
 /// This is the Trait that defines the shared behavior for all the entities that
 /// belong to the Environment. Each of the entities needs to implement this
 /// Trait, and can interact with other entities via this Trait.
 ///
 /// The lifetime `'e` is used to specify the lifetime bound of any immutable
-/// reference that is part of the type that is going to implement this trait.
-/// So that, if your type includes an immutable reference with an explicit
+/// reference that belongs to the type that implements this trait.
+/// So that, if your type includes immutable references with an explicit
 /// lifetime, it is possible to propagate the lifetime bound to the Offspring of
 /// this Entity without requiring a `'static` lifetime.
 /// This lifetime bound does not apply to mutable references, since they cannot
@@ -36,19 +37,22 @@ pub trait Entity<'e>: Debug {
     type Context;
 
     /// Gets the ID of the Entity.
+    ///
     /// The ID must be unique for all the entities. It is considered a logic
     /// error for to different entities to share the same ID, in which case the
-    /// behavior within the environment is undefined.
+    /// behavior within the Environment is undefined.
     fn id(&self) -> Id;
 
     /// Gets the Entity type.
+    ///
     /// Each Entity can belong to a specific kind that defines, besides the
     /// logical type of the Entity itself, the order in which entities are going
     /// to be drawn.
     fn kind(&self) -> Self::Kind;
 
-    /// Gets the location of the Entity within the environment.
-    /// If the Entity has no location, it should return None. An Entity can either
+    /// Gets the location of the Entity within the Environment.
+    ///
+    /// If an Entity has no location, it should return None. An Entity can either
     /// have a location for its entire lifetime or no location; it is considered
     /// a logic error if this method returns None for an Entity that previously
     /// had a location, and vice versa.
@@ -56,17 +60,20 @@ pub trait Entity<'e>: Debug {
         None
     }
 
-    /// Gets the scope of this Entity. The size of the scope defines its radius
-    /// of influence, that is the portion of the environment that an Entity can
-    /// see and interact with. The bigger the scope the bigger the portion of
-    /// the Environment (Neighborhood). A scope equal to 0 means that the Entity
-    /// is only going to be able to see the tile where it currently resides, a
-    /// scope equal to 1 will also include the 8 surrounding tiles, and so on.
-    /// If None is returned the Entity has no scope at all, and can neither seen
-    /// of affect any other tile or surrounding Entity. In other terms, the scope
-    /// effectively represents the distance from the tile where the Entity is
-    /// located, to the farthest tile it will ever be able to reach.
-    /// Moreover, only entities that have a location in the environment can
+    /// Gets the scope of this Entity.
+    ///
+    /// The size of the scope defines its radius of influence, i.e. the portion
+    /// of the Environment that an Entity can see and interact with. The bigger
+    /// the scope the bigger the portion of the Environment (Neighborhood).
+    /// A scope equal to 0 means that the Entity is only going to be able to see
+    /// the Tile where it currently resides, a scope equal to 1 will also include
+    /// the 8 surrounding tiles, and so on.
+    /// If None is returned the Entity has no scope at all, and it can neither see
+    /// nor affect any other tile or surrounding Entity.
+    /// In other terms, the scope effectively represents the distance from the
+    /// Tile where the Entity is located, to the farthest Tile it will ever be
+    /// able to reach.
+    /// Moreover, only entities that have a location in the Environment can
     /// interact with surrounding entities, therefore it is a logic error to
     /// return Some from this method if `Entity::location()` returns None, but it
     /// is perfectly valid for entities to have a location but no scope.
@@ -74,13 +81,16 @@ pub trait Entity<'e>: Debug {
         None
     }
 
-    /// Gets the remaining lifespan of the Entity. If the Entity has no lifespan
-    /// attached to it, because meaningless, it should return None.
+    /// Gets the remaining lifespan of the Entity.
+    ///
+    /// If the concept of lifespan is meaningless for this Entity, it should
+    /// simply return None.
     fn lifespan(&self) -> Option<Lifespan> {
         None
     }
 
     /// Gets a mutable reference to the remaining lifespan of the Entity.
+    ///
     /// It is possible to influence the remaining lifespan of the Entity by
     /// changing its value. If the Entity has no lifespan, or it does not allow
     /// other entities to affect its own lifespan, None should be returned.
@@ -89,27 +99,32 @@ pub trait Entity<'e>: Debug {
     }
 
     /// Gets a reference to a trait that is implemented by the object that
-    /// represents the state of the Entity. The State trait exposes method that
-    /// enable dynamic typing and allow to downcast the trait to the original
-    /// concrete type. If the Entity has no meaningful state associated with it,
-    /// this method should simply return None.
+    /// represents the state of the Entity.
+    ///
+    /// The State trait exposes method that enable dynamic typing and allow to
+    /// downcast the trait to the original concrete type.
+    /// If the Entity has no meaningful state associated with it, this method
+    /// should simply return None.
     fn state(&self) -> Option<&dyn State> {
         None
     }
 
     /// Gets a mutable reference to a trait that is implemented by the object that
-    /// represents the state of the Entity. The State trait exposes method that
-    /// enable dynamic typing and allow to downcast the trait to the original
-    /// concrete type. If the Entity has no meaningful state associated with it,
-    /// or it does not allow other entities to affect its own state, this method
-    /// should return None.
+    /// represents the state of the Entity.
+    ///
+    /// The State trait exposes method that enable dynamic typing and allow to
+    /// downcast the trait to the original concrete type.
+    /// If the Entity has no meaningful state associated with it, this method
+    /// should simply return None.
     fn state_mut(&mut self) -> Option<&mut dyn State> {
         None
     }
 
-    /// Allows the Entity to observe the portion of surrounding environment seen
-    /// by the Entity according to its scope. The larger the scope the bigger the
-    /// portion of the environment that the Entity will be allowed to see.
+    /// Allows the Entity to observe the portion of surrounding Environment seen
+    /// by the Entity according to its scope.
+    ///
+    /// The larger the scope the bigger the portion of the Environment that the
+    /// Entity will be allowed to see.
     /// The provided Neighborhood represents the squared grid of surrounding
     /// cells. Each of these cells can be queried to detect what other entities
     /// are currently in that location, and allows to interact with those
@@ -144,9 +159,11 @@ pub trait Entity<'e>: Debug {
     }
 
     /// Allows to take an action that will affect the Entity itself, and its
-    /// neighbors, according to the portion of surrounding environment seen by
-    /// the Entity according to its scope. The larger the scope the bigger the
-    /// portion of the environment the Entity will be allowed to see and affect.
+    /// neighbors, according to the portion of surrounding Environment seen by
+    /// the Entity according to its scope.
+    ///
+    /// The larger the scope the bigger the portion of the Environment the Entity
+    /// will be allowed to see and affect.
     /// The provided Neighborhood represents the squared grid of surrounding
     /// cells. Each of this cell can be queried to detect what other entities
     /// are currently in that location, and allows to interact with those
@@ -174,10 +191,11 @@ pub trait Entity<'e>: Debug {
         Ok(())
     }
 
-    /// Gets the offspring of the Entity.
-    /// The offspring of an Entity will be introduced in the environment at
+    /// Gets the Offspring of the Entity.
+    ///
+    /// The offspring of an Entity will be introduced in the Environment at
     /// every generation. Therefore, the list of entities returned by this method
-    /// will be taken as is and introduces as is in the environment. It is the
+    /// will be taken as is and introduces as is in the Environment. It is the
     /// responsibility of the Entity owner to return an offspring only if the
     /// Entity did actually generate an offspring in the current generation,
     /// otherwise this method should return None.
@@ -193,8 +211,8 @@ pub trait Entity<'e>: Debug {
     }
 
     /// Draws the Entity using the given graphics Context and according to the
-    /// given transformation (matrix). Returns an error of the provided type if
-    /// something went wrong.
+    /// given transformation (matrix).
+    ///
     /// This method is called for each generation. If you wish to skip drawing
     /// the shape of your Entity, this method should simply return `Ok(())`.
     fn draw(&self, _: &mut Self::Context, _: Transform) -> Result<(), Error> {

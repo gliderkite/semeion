@@ -174,10 +174,10 @@ impl<'e, K, C> Tile<'e, K, C> {
     }
 }
 
-/// A view over a single Environment Tile.
+/// A single Environment tile as seen by a single Entity.
 #[derive(Debug)]
 pub struct TileView<'a, 'e, K, C> {
-    // the ID of the Entity that *owns* this tile
+    // the ID of the Entity that is seeing this tile
     id: Option<Id>,
     // the reference to the Tile in the Environment, where the *weak* references
     // to the entities are stored
@@ -185,9 +185,10 @@ pub struct TileView<'a, 'e, K, C> {
 }
 
 impl<'a, 'e: 'a, K, C> TileView<'a, 'e, K, C> {
-    /// Gets an iterator over the entities located in this Tile that does not
-    /// include the entity that *owns* this tile view. The entities are returned
-    /// in arbitrary order.
+    /// Gets an iterator over all the entities located in this Tile that does not
+    /// include the Entity that is seeing the tile.
+    ///
+    /// The entities are returned in arbitrary order.
     pub fn entities(&self) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
         self.tile.entities().filter(move |e| {
             !matches!(&self.id, Some(entity_id) if entity_id == &e.id())
@@ -195,8 +196,9 @@ impl<'a, 'e: 'a, K, C> TileView<'a, 'e, K, C> {
     }
 
     /// Gets an iterator over mutable entities located in this Tile that does not
-    /// include the entity that *owns* this tile view. The entities are returned
-    /// in arbitrary order.
+    /// include the Entity that is seeing the tile.
+    ///
+    /// The entities are returned in arbitrary order.
     pub fn entities_mut(
         &mut self,
     ) -> impl Iterator<Item = &mut entity::Trait<'e, K, C>> {
@@ -207,7 +209,7 @@ impl<'a, 'e: 'a, K, C> TileView<'a, 'e, K, C> {
     }
 
     /// Gets the total number of entities located in this Tile, including the
-    /// entity that *owns* the tile.
+    /// Entity that is seeing the tile.
     pub fn len(&self) -> usize {
         self.tile.entities.len()
     }

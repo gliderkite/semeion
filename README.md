@@ -1,8 +1,8 @@
 # semeion
 
-An experimental 2D environment simulator, that let's you define the behavior and
-the shape of your entities, while taking care of dispatching events generation
-after generation.
+A 2D environment simulator, that let's you define the behavior and the shape
+of your entities, while taking care of dispatching events generation after
+generation.
 
 [![docs.rs](https://docs.rs/semeion/badge.svg)](https://docs.rs/semeion)
 [![crates.io](https://img.shields.io/crates/v/semeion.svg)](https://crates.io/crates/semeion)
@@ -22,41 +22,38 @@ giving an example of how to make the best use of it.
 
  - [Langton's Ant](https://en.wikipedia.org/wiki/Langton%27s_ant)
 
-    ```bash
-    cargo run --release --example langton
-    ```
-
-    ![langton preview](../assets/langton.gif)
+   ```bash
+   cargo run --release --example langton
+   ```
+   <img src="../assets/langton.gif" width="300" height="240">
 
  - [Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life)
 
-    ```bash
-    cargo run --release --example life
-    ```
-
-    ![life preview](../assets/life.gif)
+   ```bash
+   cargo run --release --example life
+   ```
+   <img src="../assets/life.gif" width="350" height="300">
 
 
  - [Wireworld](https://en.wikipedia.org/wiki/Wireworld)
 
-    ```bash
-    cargo run --release --example wireworld
-    ```
-
-    ![wireworld preview](../assets/wireworld.gif)
+   ```bash
+   cargo run --release --example wireworld
+   ```
+   <img src="../assets/wireworld.gif" width="300" height="300">
 
 
  - [Mandelbrot](https://en.wikipedia.org/wiki/Mandelbrot_set)
 
+   ```bash
+   cargo run --release --example mandelbrot
+   ```
+   <img src="../assets/mandelbrot.gif" width="350" height="200">
+
+
+ - [Camera](https://en.wikipedia.org/wiki/Transformation_matrix)
+
     ```bash
-    cargo run --release --example mandelbrot
+    cargo run --release --example camera
     ```
-
-    ![mandelbrot preview](../assets/mandelbrot.gif)
-
-
-
-## Semantic Versioning
-
-This library is extremely experimental, but it follows the basic rules of
-[semantic versioning](https://doc.rust-lang.org/cargo/reference/manifest.html#the-version-field).
+   <img src="../assets/camera.gif" width="300" height="300">

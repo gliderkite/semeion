@@ -15,12 +15,13 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
         self.dimension
     }
 
-    /// Gets an iterator over the Tiles that belong to this Neighborhood.
+    /// Gets an iterator over all the Tiles that belong to this Neighborhood.
     pub fn tiles(&self) -> impl Iterator<Item = &TileView<'a, 'e, K, C>> {
         self.tiles.iter()
     }
 
-    /// Gets an iterator over the mutable Tiles that belong to this Neighborhood.
+    /// Gets an iterator over all the mutable Tiles that belong to this
+    /// Neighborhood.
     pub fn tiles_mut(
         &mut self,
     ) -> impl Iterator<Item = &mut TileView<'a, 'e, K, C>> {
@@ -28,17 +29,21 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
     }
 
     /// Gets a reference to the Tile located at the given offset from the center
-    /// of this Neighborhood. The Neighborhood is seen as a Torus from this method,
-    /// therefore, out of bounds offsets will be translated considering that
-    /// the Neighborhood edges are joined.
+    /// of this Neighborhood.
+    ///
+    /// The Neighborhood is seen as a Torus from this method, therefore, out of
+    /// bounds offsets will be translated considering that the Neighborhood edges
+    /// are joined.
     pub fn tile(&self, offset: Offset) -> &TileView<'a, 'e, K, C> {
         &self.tiles[self.index(offset)]
     }
 
     /// Gets a mutable reference to the Tile located at the given offset from
-    /// the center of this Neighborhood. The Neighborhood is seen as a Torus
-    /// from this method,therefore, out of bounds offsets will be translated
-    /// considering that the Neighborhood edges are joined.
+    /// the center of this Neighborhood.
+    ///
+    /// The Neighborhood is seen as a Torus from this method, therefore, out of
+    /// bounds offsets will be translated considering that the Neighborhood edges
+    /// are joined.
     pub fn tile_mut(&mut self, offset: Offset) -> &mut TileView<'a, 'e, K, C> {
         debug_assert!(!self.tiles.is_empty());
         let index = self.index(offset);
@@ -59,6 +64,7 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
     /// Gets a list of tiles that surround the Tile T of this Neighborhood,
     /// located at a given Offset from the center Tile, and according to the
     /// given Scope, that represents the distance from the Tile T.
+    ///
     /// The tiles are returned in arbitrary order. Returns None if any of the
     /// border tiles is out of the Neighborhood dimension for the given Scope.
     pub fn border(

@@ -23,23 +23,27 @@ type EntityClosure<'e, K, C> =
     dyn Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error>;
 
 /// The Environment is a grid, of squared tiles with the same size, where all
-/// the entities belong. The Environment acts both as the data structure as
-/// well as the engine that gives life to all the entities in it, and allows
-/// their interaction for every generation. Where the behavior of each Entity is
-/// defined by the user, via the Entity trait.
-/// An environment can contains entities of different kinds.
-/// The Environment can be created with specific dimension, that represents the
-/// size of the grid that describes its geometry.
+/// the entities belong.
+///
+/// The Environment acts both as the data structure as well as the engine that
+/// gives life to all the entities in it, and allows their interaction for every
+/// generation. Where the behavior of each Entity is defined by the user, via
+/// the Entity trait.
+///
 /// Once the Environment is initialized by inserting entities as its initial
 /// population, it can be drawn by drawing all its entities, and it is possible
 /// to move to the next generation (allowing the interaction between the entities
 /// to take place).
-/// The geometry of the environment is defined as a Torus, that is, the grid
+///
+/// An Environment can contains entities of different kinds, and it can be
+/// created with specific dimension, that represents the size of the grid that
+/// describes its geometry.
+/// The geometry of the Environment is defined as a Torus, that is, the grid
 /// dimension are adjacent to each other, allowing therefore the entities to move
 /// past each dimension into the next tile as if there were no limits.
 ///
 /// The lifetime `'e` is the lifetime bound that is applied to all the entities
-/// owned by the environment, and it must be the same lifetime for all the
+/// owned by the Environment, and it must be the same lifetime for all the
 /// entities types that implement the Entity trait. This lifetime defines the
 /// bound for the objects (immutable references lifetimes) that implement the
 /// Entity trait, and it allows to propagate the same bound to the entities
@@ -68,9 +72,10 @@ struct Snapshot<K> {
 }
 
 impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
-    /// Constructs a new environment with the given dimension. The dimension
-    /// represent the size of the grid of squared tiles of same side length, as
-    /// number of columns and rows.
+    /// Constructs a new environment with the given dimension.
+    ///
+    /// The dimension represents the size of the grid of squared tiles of same
+    /// side length, as number of columns and rows.
     pub fn new(dimension: Dimension) -> Self {
         Self {
             entities: BTreeMap::new(),
@@ -82,6 +87,7 @@ impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
     }
 
     /// Inserts the given Entity into the Environment.
+    ///
     /// This method is usually used to pre-populate the environment with a set
     /// of entities that will constitute the first generation. After the
     /// environment has been pre-populated the set of entities stored in it will
@@ -95,9 +101,10 @@ impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
     }
 
     /// Draws the environment by iterating over each of its entities, sorted by
-    /// kind, and calling the draw method for each one of them. Returns an error
-    /// if any of the draw methods returns an error. The order of draw calls for
-    /// each entity of the same type is arbitrary.
+    /// kind, and calling the draw method for each one of them.
+    ///
+    /// Returns an error if any of the draw methods returns an error.
+    /// The order of draw calls for each entity of the same type is arbitrary.
     pub fn draw(&self, ctx: &mut C, transform: Transform) -> Result<(), Error> {
         for entities in self.entities.values() {
             for entity in entities.values() {
@@ -125,9 +132,10 @@ impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
         self.generation
     }
 
-    /// Gets an iterator over all the entities of the given Kind. The entities
-    /// are returned in arbitrary order. If no entities of the given Kind exists
-    /// in the Environment None is returned.
+    /// Gets an iterator over all the entities of the given Kind.
+    ///
+    /// The entities are returned in arbitrary order. If no entities of the given
+    /// Kind exists in the Environment, None is returned.
     pub fn entities(
         &self,
         kind: &K,
@@ -138,6 +146,7 @@ impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
     }
 
     /// Gets an iterator over all the entities located at the given location.
+    ///
     /// The Environment is seen as a Torus from this method, therefore, out of
     /// bounds offsets will be translated considering that the Environment
     /// edges are joined.
@@ -149,6 +158,7 @@ impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
     }
 
     /// Moves forwards to the next generation.
+    ///
     /// Moving to the next generation involves the following actions sorted by
     /// order:
     /// - Calling `Entity::observe(neighborhood)` for each entity with a snapshot
@@ -169,6 +179,7 @@ impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
     }
 
     /// Moves forwards to the next generation.
+    ///
     /// Follows the same semantic of `Environment::nextgen()`, but allows to call
     /// the provided closure for each Entity in the Environment. The closure
     /// will be called prior to any other step, allowing to initialize the state
