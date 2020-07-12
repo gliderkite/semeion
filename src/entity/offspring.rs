@@ -1,7 +1,6 @@
 use super::*;
 
 /// The Entity offspring.
-#[derive(Debug)]
 pub struct Offspring<'e, K, C> {
     entities: Vec<Box<entity::Trait<'e, K, C>>>,
 }

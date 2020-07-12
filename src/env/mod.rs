@@ -1,6 +1,4 @@
 use std::collections::{BTreeMap, HashMap};
-use std::fmt::Debug;
-use std::hash::Hash;
 
 use super::*;
 use tile::*;
@@ -48,15 +46,12 @@ type EntityClosure<'e, K, C> =
 /// bound for the objects (immutable references lifetimes) that implement the
 /// Entity trait, and it allows to propagate the same bound to the entities
 /// Offspring.
-#[derive(Debug)]
 pub struct Environment<'e, K, C> {
     // the list of strong references to the entities
     entities: EntitiesKinds<'e, K, C>,
     // the (1-dimensional) grid of tiles that stores week references to the
     // entities according to their location
     tiles: Tiles<'e, K, C>,
-    // the environment dimension
-    dimension: Dimension,
     // the latest snapshot of the environment, used to update the entities
     // properties within it at each generation
     snapshots: Vec<Snapshot<K>>,
@@ -64,14 +59,13 @@ pub struct Environment<'e, K, C> {
     generation: u64,
 }
 
-#[derive(Debug)]
 struct Snapshot<K> {
     id: Id,
     kind: K,
     location: Location,
 }
 
-impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
+impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// Constructs a new environment with the given dimension.
     ///
     /// The dimension represents the size of the grid of squared tiles of same
@@ -80,7 +74,6 @@ impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
         Self {
             entities: BTreeMap::new(),
             tiles: Tiles::new(dimension),
-            dimension,
             snapshots: Vec::default(),
             generation: 0,
         }
@@ -120,7 +113,7 @@ impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
     }
 
     /// Gets the total number of entities in the environment by kind.
-    pub fn count_by_kind(&self) -> HashMap<&K, usize> {
+    pub fn count_by_kind(&self) -> BTreeMap<&K, usize> {
         self.entities
             .iter()
             .map(|(kind, entities)| (kind, entities.len()))

@@ -18,7 +18,6 @@ pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {
     mesh.build(ctx)
 }
 
-#[derive(Debug)]
 pub struct Cell<'a> {
     id: Id,
     location: Location,

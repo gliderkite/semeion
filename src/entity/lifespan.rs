@@ -1,7 +1,12 @@
 /// The lifespan of an entity.
 #[derive(Debug, Clone, Copy)]
 pub enum Lifespan {
+    /// The Entity ages as the time goes on, and its lifespan decreases generation
+    /// after generation.
     Ephemeral(Span),
+    /// The Entity is not affected by the passing of time, and its lifespan does
+    /// not decrease, but it can still be killed by other entities since its
+    /// lifespan is defined and can be altered.
     Immortal,
 }
 
