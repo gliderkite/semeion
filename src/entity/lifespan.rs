@@ -1,5 +1,5 @@
 /// The lifespan of an entity.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Lifespan {
     /// The Entity ages as the time goes on, and its lifespan decreases generation
     /// after generation.
@@ -11,6 +11,11 @@ pub enum Lifespan {
 }
 
 impl Lifespan {
+    /// Constructs an Ephemeral Lifespan with the given span value.
+    pub fn with_span(span: impl Into<Span>) -> Self {
+        Self::Ephemeral(span.into())
+    }
+
     /// Returns true only if there is lifespan left. It will always return true
     /// if immortal.
     pub fn is_alive(&self) -> bool {
@@ -56,11 +61,21 @@ impl Lifespan {
     pub fn clear(&mut self) {
         *self = Lifespan::Ephemeral(Span::empty())
     }
+
+    /// Gets the span of the Lifespan if self is Ephemeral, otherwise returns
+    /// None.
+    pub fn span(self) -> Option<Span> {
+        if let Lifespan::Ephemeral(span) = self {
+            Some(span)
+        } else {
+            None
+        }
+    }
 }
 
 /// The window of time span as seen by an entity, represented as discrete number
 /// of steps left before the entity dies.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Span {
     length: u64,
 }
