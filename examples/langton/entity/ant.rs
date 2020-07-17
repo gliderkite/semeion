@@ -70,7 +70,7 @@ impl<'a> Ant<'a> {
             Direction::Down => ((-1, 0), Direction::Left),
         };
         self.direction = direction;
-        self.location.translate(offset.into(), env::dimension());
+        self.location.translate(offset, env::dimension());
     }
 
     /// Turn the Ant 90° counter-clockwise and move forwards of one tile.
@@ -82,7 +82,7 @@ impl<'a> Ant<'a> {
             Direction::Left => ((0, 1), Direction::Down),
         };
         self.direction = direction;
-        self.location.translate(offset.into(), env::dimension());
+        self.location.translate(offset, env::dimension());
     }
 }
 
