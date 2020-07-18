@@ -34,7 +34,7 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
     /// The Neighborhood is seen as a Torus from this method, therefore, out of
     /// bounds offsets will be translated considering that the Neighborhood edges
     /// are joined.
-    pub fn tile(&self, offset: Offset) -> &TileView<'a, 'e, K, C> {
+    pub fn tile(&self, offset: impl Into<Offset>) -> &TileView<'a, 'e, K, C> {
         &self.tiles[self.index(offset)]
     }
 
@@ -44,7 +44,10 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
     /// The Neighborhood is seen as a Torus from this method, therefore, out of
     /// bounds offsets will be translated considering that the Neighborhood edges
     /// are joined.
-    pub fn tile_mut(&mut self, offset: Offset) -> &mut TileView<'a, 'e, K, C> {
+    pub fn tile_mut(
+        &mut self,
+        offset: impl Into<Offset>,
+    ) -> &mut TileView<'a, 'e, K, C> {
         let index = self.index(offset);
         &mut self.tiles[index]
     }
@@ -68,9 +71,11 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
     /// border tiles is out of the Neighborhood dimension for the given Scope.
     pub fn border(
         &self,
-        offset: Offset,
-        scope: Scope,
+        offset: impl Into<Offset>,
+        scope: impl Into<Scope>,
     ) -> Option<Vec<&TileView<'a, 'e, K, C>>> {
+        let offset = offset.into();
+        let scope = scope.into();
         // the location of the tile T relative to the center of the Neighborhood
         let loc = self.dimension.center() + offset;
 
@@ -98,7 +103,7 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
     /// of this Neighborhood. The Neighborhood is seen as a Torus from this
     /// method, therefore, out of bounds offsets will be translated
     /// considering that the Neighborhood edges are joined.
-    fn index(&self, offset: Offset) -> usize {
+    fn index(&self, offset: impl Into<Offset>) -> usize {
         debug_assert!(!self.tiles.is_empty());
         let mut center = self.dimension.center();
         let index = center
