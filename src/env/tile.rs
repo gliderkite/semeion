@@ -233,6 +233,13 @@ impl<'a, 'e: 'a, K, C> TileView<'a, 'e, K, C> {
     }
 }
 
+impl<'a, 'e: 'a, K: PartialEq, C> TileView<'a, 'e, K, C> {
+    /// Returns true only if this Tile contains an Entity of the given Kind.
+    pub fn contains(&self, kind: K) -> bool {
+        self.tile.entities().any(|e| e.kind() == kind)
+    }
+}
+
 impl<'a, 'e, K, C> TileView<'a, 'e, K, C> {
     /// Constructs a new TileView with a specific Entity as owner.
     pub(crate) fn with_owner(id: Id, tile: &'a mut Tile<'e, K, C>) -> Self {
