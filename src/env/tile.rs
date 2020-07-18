@@ -14,8 +14,11 @@ impl<'e, K, C> Tiles<'e, K, C> {
     /// Constructs a new list of tiles of the given dimension with no entities
     /// assigned to it.
     pub fn new(dimension: Dimension) -> Self {
-        let mut tiles = Vec::new();
-        tiles.resize_with(dimension.len(), Tile::default);
+        let mut tiles = Vec::with_capacity(dimension.len());
+        for i in 0..dimension.len() {
+            tiles.push(Tile::new(Location::from_one_dimensional(i, dimension)));
+        }
+
         Self { tiles, dimension }
     }
 
@@ -68,6 +71,7 @@ impl<'e, K, C> Tiles<'e, K, C> {
         let index = location.one_dimensional(self.dimension);
         debug_assert!(index < self.tiles.len());
         let tile = &self.tiles[index];
+        debug_assert_eq!(tile.location, location);
         tile.entities()
     }
 
@@ -98,11 +102,11 @@ impl<'e, K, C> Tiles<'e, K, C> {
                 // by tile from the top-left corner to the bottom-down corner
                 for y in -scope..=scope {
                     for x in -scope..=scope {
-                        let index = center
-                            .clone()
-                            .translate(Offset { x, y }, self.dimension)
-                            .one_dimensional(self.dimension);
+                        let mut location = center;
+                        location.translate(Offset { x, y }, self.dimension);
+                        let index = location.one_dimensional(self.dimension);
                         debug_assert!(index < self.tiles.len());
+
                         neighborhood.push(TileView::with_owner(
                             entity.id(),
                             // This is safe only if the indexes are all unique,
@@ -130,13 +134,17 @@ impl<'e, K, C> Tiles<'e, K, C> {
 /// *weak* references to the entities.
 #[derive(Debug)]
 pub struct Tile<'e, K, C> {
+    // the location of the Tile in the Environment
+    location: Location,
+    // the entities that currently occupy this Tile
     entities: HashMap<Id, *mut entity::Trait<'e, K, C>>,
 }
 
-impl<'e, K, C> Default for Tile<'e, K, C> {
-    /// Constructs an empty Tile.
-    fn default() -> Self {
+impl<'e, K, C> Tile<'e, K, C> {
+    /// Constructs a new Tile with the given Location and no entities.
+    fn new(location: impl Into<Location>) -> Self {
         Self {
+            location: location.into(),
             entities: HashMap::default(),
         }
     }
@@ -185,6 +193,11 @@ pub struct TileView<'a, 'e, K, C> {
 }
 
 impl<'a, 'e: 'a, K, C> TileView<'a, 'e, K, C> {
+    /// Gets the Location of this Tile within the Environment.
+    pub fn location(&self) -> Location {
+        self.tile.location
+    }
+
     /// Gets an iterator over all the entities located in this Tile that does not
     /// include the Entity that is seeing the tile.
     ///

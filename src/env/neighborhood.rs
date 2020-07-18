@@ -45,7 +45,6 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
     /// bounds offsets will be translated considering that the Neighborhood edges
     /// are joined.
     pub fn tile_mut(&mut self, offset: Offset) -> &mut TileView<'a, 'e, K, C> {
-        debug_assert!(!self.tiles.is_empty());
         let index = self.index(offset);
         &mut self.tiles[index]
     }
@@ -87,8 +86,8 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
         let mut tiles =
             Vec::with_capacity(Dimension::perimeter_with_scope(scope));
         for mut delta in Offset::border(scope) {
-            let loc = *delta.translate(offset, self.dimension);
-            tiles.push(self.tile(loc))
+            let center_offset = *delta.translate(offset, self.dimension);
+            tiles.push(self.tile(center_offset))
         }
 
         debug_assert_eq!(tiles.capacity(), tiles.len());
@@ -111,10 +110,17 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
 
     /// Returns true only if this Neighborhood contains unique Tiles.
     fn is_unique(&self) -> bool {
-        let mut uniq = HashSet::with_capacity(self.tiles.len());
+        let mut refs = HashSet::with_capacity(self.tiles.len());
+        let mut locations = HashSet::with_capacity(self.tiles.len());
+        // for a Neighborhood to be unique it must contain only weak references
+        // to unique tiles, and each tile must point to an unique location
         self.tiles
             .iter()
-            .all(move |tile| uniq.insert(tile.inner() as *const Tile<'e, K, C>))
+            .all(move |tile| refs.insert(tile.inner() as *const Tile<'e, K, C>))
+            && self
+                .tiles
+                .iter()
+                .all(move |tile| locations.insert(tile.location()))
     }
 }
 

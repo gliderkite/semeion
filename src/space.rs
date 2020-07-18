@@ -60,7 +60,8 @@ impl Location {
         }
     }
 
-    /// Maps a 2-dimensional coordinate to a 1-dimensional index.
+    /// Maps a 2-dimensional coordinate in a Torus of the given dimension, to a
+    /// 1-dimensional index.
     pub fn one_dimensional(self, dimension: impl Into<Dimension>) -> usize {
         debug_assert!(!self.x.is_negative());
         debug_assert!(!self.y.is_negative());
@@ -69,6 +70,20 @@ impl Location {
         debug_assert!(!pos.is_negative());
         debug_assert!(pos < dimension.x.saturating_mul(dimension.y));
         pos as usize
+    }
+
+    /// Maps a 1-dimensional index to a 2-dimensional Location in a Torus of
+    /// the given dimension.
+    pub fn from_one_dimensional(
+        index: usize,
+        dimension: impl Into<Dimension>,
+    ) -> Self {
+        let dimension = dimension.into();
+        debug_assert!(dimension.x.is_positive());
+        Self {
+            x: index as i32 % dimension.x,
+            y: index as i32 / dimension.x,
+        }
     }
 
     /// Translates the Location coordinates by the given Offset, while keeping the
