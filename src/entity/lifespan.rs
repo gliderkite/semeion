@@ -62,7 +62,7 @@ impl Lifespan {
         *self = Lifespan::Ephemeral(Span::empty())
     }
 
-    /// Gets the span of the Lifespan if self is Ephemeral, otherwise returns
+    /// Gets the Span of the Lifespan if self is Ephemeral, otherwise returns
     /// None.
     pub fn span(self) -> Option<Span> {
         if let Lifespan::Ephemeral(span) = self {
@@ -70,6 +70,12 @@ impl Lifespan {
         } else {
             None
         }
+    }
+
+    /// Gets the length of the Lifespan if self is Ephemeral, otherwise returns
+    /// None.
+    pub fn length(self) -> Option<u64> {
+        self.span().map(|span| span.length())
     }
 }
 
