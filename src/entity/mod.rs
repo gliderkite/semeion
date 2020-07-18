@@ -218,5 +218,5 @@ pub trait Entity<'e> {
     }
 }
 
-/// The Entity Trait type alias.
-pub(crate) type Trait<'e, K, C> = dyn Entity<'e, Kind = K, Context = C> + 'e;
+/// The Entity Trait type alias with explicit lifetime bound.
+pub type Trait<'e, K, C> = dyn Entity<'e, Kind = K, Context = C> + 'e;
