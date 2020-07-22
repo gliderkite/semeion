@@ -68,7 +68,7 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
     /// given Scope, that represents the distance from the Tile T.
     ///
     /// The tiles are returned in arbitrary order. Returns None if any of the
-    /// border tiles is out of the Neighborhood dimension for the given Scope.
+    /// border tiles is beyond the Neighborhood dimension for the given Scope.
     pub fn border(
         &self,
         offset: impl Into<Offset>,
@@ -99,10 +99,25 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
         Some(tiles)
     }
 
+    /// Gets a list of tiles that surround the center Tile of this Neighborhood,
+    /// and according to the given Scope, that represents the distance from the
+    /// center Tile.
+    ///
+    /// The tiles are returned in arbitrary order. Returns None if any of the
+    /// border tiles is beyond the Neighborhood dimension for the given Scope.
+    pub fn immediate_border(
+        &self,
+        scope: impl Into<Scope>,
+    ) -> Option<Vec<&TileView<'a, 'e, K, C>>> {
+        self.border(Offset::origin(), scope)
+    }
+
     /// Gets the index of the Tile located at the given offset from the center
-    /// of this Neighborhood. The Neighborhood is seen as a Torus from this
-    /// method, therefore, out of bounds offsets will be translated
-    /// considering that the Neighborhood edges are joined.
+    /// of this Neighborhood.
+    ///
+    /// The Neighborhood is seen as a Torus from this method, therefore, out of
+    /// bounds offsets will be translated considering that the Neighborhood
+    /// edges are joined.
     fn index(&self, offset: impl Into<Offset>) -> usize {
         debug_assert!(!self.tiles.is_empty());
         let mut center = self.dimension.center();
@@ -129,11 +144,26 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
     }
 }
 
+impl<'a, 'e, K: PartialEq, C> Neighborhood<'a, 'e, K, C> {
+    /// Returns true only if any of the Tiles in this Neighborhood contains an
+    /// Entity of the given Kind, without considering the Entity that is
+    /// inspecting this Neighborhood.
+    pub fn contains_kind(&self, kind: K) -> bool {
+        self.tiles
+            .iter()
+            .map(|t| t.entities())
+            .flatten()
+            .any(|e| e.kind() == kind)
+    }
+}
+
 impl<'a, 'e, K, C> From<Vec<TileView<'a, 'e, K, C>>>
     for Neighborhood<'a, 'e, K, C>
 {
-    /// Constructs a new Neighborhood from a list of tiles that can encode a
-    /// squared grid.
+    /// Constructs a new Neighborhood from a list of tiles.
+    ///
+    /// The list of tiles encodes a squared grid constructed top to bottom and
+    /// left to right.
     fn from(tiles: Vec<TileView<'a, 'e, K, C>>) -> Self {
         debug_assert!(!tiles.is_empty());
         let length = tiles.len() as f64;

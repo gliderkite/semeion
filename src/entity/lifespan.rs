@@ -39,7 +39,8 @@ impl Lifespan {
 
     /// Shorten the lifespan by the given amount of span, it has no effect if
     /// immortal. Returns the Lifespan left.
-    pub fn shorten_by(&mut self, amount: Span) -> &Self {
+    pub fn shorten_by(&mut self, amount: impl Into<Span>) -> &Self {
+        let amount = amount.into();
         if let Lifespan::Ephemeral(span) = self {
             span.shorten_by(amount.into());
         }
@@ -48,7 +49,8 @@ impl Lifespan {
 
     /// Lengthen the lifespan by the given amount of span, it has no effect if
     /// immortal. Returns the Lifespan left.
-    pub fn lengthen_by(&mut self, amount: Span) -> &Self {
+    pub fn lengthen_by(&mut self, amount: impl Into<Span>) -> &Self {
+        let amount = amount.into();
         if let Lifespan::Ephemeral(span) = self {
             span.lengthen_by(amount.into());
         }

@@ -101,7 +101,7 @@ impl<'a> Entity<'a> for Cell<'a> {
         // dies) => count the number of entities found in all the tiles that
         // are included in this Cell immediate border
         let count: usize = neighborhood
-            .border(Offset::origin(), scope)
+            .immediate_border(scope)
             .expect("Invalid border")
             .iter()
             .map(|t| t.len())

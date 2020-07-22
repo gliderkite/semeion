@@ -192,7 +192,7 @@ pub struct TileView<'a, 'e, K, C> {
     tile: &'a mut Tile<'e, K, C>,
 }
 
-impl<'a, 'e: 'a, K, C> TileView<'a, 'e, K, C> {
+impl<'a, 'e, K, C> TileView<'a, 'e, K, C> {
     /// Gets the Location of this Tile within the Environment.
     pub fn location(&self) -> Location {
         self.tile.location
@@ -208,8 +208,8 @@ impl<'a, 'e: 'a, K, C> TileView<'a, 'e, K, C> {
         })
     }
 
-    /// Gets an iterator over mutable entities located in this Tile that does not
-    /// include the Entity that is seeing the tile.
+    /// Gets an iterator over all the mutable entities located in this Tile that
+    /// does not include the Entity that is seeing the tile.
     ///
     /// The entities are returned in arbitrary order.
     pub fn entities_mut(
@@ -233,10 +233,11 @@ impl<'a, 'e: 'a, K, C> TileView<'a, 'e, K, C> {
     }
 }
 
-impl<'a, 'e: 'a, K: PartialEq, C> TileView<'a, 'e, K, C> {
-    /// Returns true only if this Tile contains an Entity of the given Kind.
-    pub fn contains(&self, kind: K) -> bool {
-        self.tile.entities().any(|e| e.kind() == kind)
+impl<'a, 'e, K: PartialEq, C> TileView<'a, 'e, K, C> {
+    /// Returns true only if this Tile contains an Entity of the given Kind,
+    /// without considering the Entity that is seeing the tile.
+    pub fn contains_kind(&self, kind: K) -> bool {
+        self.entities().any(|e| e.kind() == kind)
     }
 }
 
