@@ -112,12 +112,12 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
         self.entities.values().map(|entities| entities.len()).sum()
     }
 
-    /// Gets the total number of entities in the environment by kind.
-    pub fn count_by_kind(&self) -> BTreeMap<&K, usize> {
+    /// Gets the total number of entities in the environment of the given kind.
+    pub fn count_kind(&self, kind: &K) -> usize {
         self.entities
-            .iter()
-            .map(|(kind, entities)| (kind, entities.len()))
-            .collect()
+            .get(kind)
+            .map(|entities| entities.len())
+            .unwrap_or(0)
     }
 
     /// Gets the current generation step number.
