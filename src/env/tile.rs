@@ -13,13 +13,19 @@ pub struct Tiles<'e, K, C> {
 impl<'e, K, C> Tiles<'e, K, C> {
     /// Constructs a new list of tiles of the given dimension with no entities
     /// assigned to it.
-    pub fn new(dimension: Dimension) -> Self {
+    pub fn new(dimension: impl Into<Dimension>) -> Self {
+        let dimension = dimension.into();
         let mut tiles = Vec::with_capacity(dimension.len());
         for i in 0..dimension.len() {
             tiles.push(Tile::new(Location::from_one_dimensional(i, dimension)));
         }
 
         Self { tiles, dimension }
+    }
+
+    /// Gets the Dimension of the Environment.
+    pub fn dimension(&self) -> Dimension {
+        self.dimension
     }
 
     /// Inserts the given Entity in the grid according to its location. If the
@@ -40,7 +46,8 @@ impl<'e, K, C> Tiles<'e, K, C> {
 
     /// Remove the Entity with the given ID from the given location.
     /// Returns whether the Entity was removed or not.
-    pub fn remove(&mut self, id: Id, location: Location) -> bool {
+    pub fn remove(&mut self, id: Id, location: impl Into<Location>) -> bool {
+        let location = location.into();
         let index = location.one_dimensional(self.dimension);
         debug_assert!(index < self.tiles.len());
         let tile = &mut self.tiles[index];
@@ -48,12 +55,19 @@ impl<'e, K, C> Tiles<'e, K, C> {
     }
 
     /// Move the Entity with the given ID between a previous and a new location.
-    pub fn relocate(&mut self, id: Id, from: Location, to: Location) {
+    pub fn relocate(
+        &mut self,
+        id: Id,
+        from: impl Into<Location>,
+        to: impl Into<Location>,
+    ) {
+        let from = from.into();
         let index = from.one_dimensional(self.dimension);
         debug_assert!(index < self.tiles.len());
         let tile = &mut self.tiles[index];
 
         if let Some(e) = tile.entities.remove(&id) {
+            let to = to.into();
             let index = to.one_dimensional(self.dimension);
             let tile = &mut self.tiles[index];
             tile.entities.insert(id, e);
@@ -66,8 +80,9 @@ impl<'e, K, C> Tiles<'e, K, C> {
     /// edges are joined.
     pub fn entities_at(
         &self,
-        location: Location,
+        location: impl Into<Location>,
     ) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
+        let location = location.into();
         let index = location.one_dimensional(self.dimension);
         debug_assert!(index < self.tiles.len());
         let tile = &self.tiles[index];

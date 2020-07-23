@@ -70,13 +70,18 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     ///
     /// The dimension represents the size of the grid of squared tiles of same
     /// side length, as number of columns and rows.
-    pub fn new(dimension: Dimension) -> Self {
+    pub fn new(dimension: impl Into<Dimension>) -> Self {
         Self {
             entities: BTreeMap::new(),
             tiles: Tiles::new(dimension),
             snapshots: Vec::default(),
             generation: 0,
         }
+    }
+
+    /// Gets the Dimension of the Environment.
+    pub fn dimension(&self) -> Dimension {
+        self.tiles.dimension()
     }
 
     /// Inserts the given Entity into the Environment.
@@ -98,7 +103,12 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     ///
     /// Returns an error if any of the draw methods returns an error.
     /// The order of draw calls for each entity of the same type is arbitrary.
-    pub fn draw(&self, ctx: &mut C, transform: Transform) -> Result<(), Error> {
+    pub fn draw(
+        &self,
+        ctx: &mut C,
+        transform: impl Into<Transform>,
+    ) -> Result<(), Error> {
+        let transform = transform.into();
         for entities in self.entities.values() {
             for entity in entities.values() {
                 entity.draw(ctx, transform)?;
@@ -145,7 +155,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// edges are joined.
     pub fn entities_at(
         &self,
-        location: Location,
+        location: impl Into<Location>,
     ) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
         self.tiles.entities_at(location)
     }

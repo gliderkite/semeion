@@ -276,6 +276,12 @@ impl Dimension {
     }
 }
 
+impl From<(i32, i32)> for Dimension {
+    fn from((x, y): (i32, i32)) -> Self {
+        Self { x, y }
+    }
+}
+
 impl From<usize> for Scope {
     fn from(magnitude: usize) -> Self {
         Self(magnitude)
