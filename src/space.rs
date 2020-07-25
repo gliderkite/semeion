@@ -137,6 +137,12 @@ impl From<(i32, i32)> for Location {
     }
 }
 
+impl From<Location> for (i32, i32) {
+    fn from(location: Location) -> Self {
+        (location.x, location.y)
+    }
+}
+
 impl Offset {
     /// Gets a list of offsets from a central location in a grid, to all the tiles
     /// located in its border, according to the given distance between the tile
@@ -197,6 +203,18 @@ impl Size {
             x: (self.width / side) as i32,
             y: (self.height / side) as i32,
         }
+    }
+}
+
+impl From<(f32, f32)> for Size {
+    fn from((width, height): (f32, f32)) -> Self {
+        Self { width, height }
+    }
+}
+
+impl From<Size> for (f32, f32) {
+    fn from(size: Size) -> Self {
+        (size.width, size.height)
     }
 }
 
@@ -279,6 +297,12 @@ impl Dimension {
 impl From<(i32, i32)> for Dimension {
     fn from((x, y): (i32, i32)) -> Self {
         Self { x, y }
+    }
+}
+
+impl From<Dimension> for (i32, i32) {
+    fn from(dimension: Dimension) -> Self {
+        (dimension.x, dimension.y)
     }
 }
 
