@@ -23,6 +23,16 @@ impl<'e, K, C> Offspring<'e, K, C> {
         self.entities.push(Box::new(entity));
     }
 
+    /// Gets the number of entities in the Offspring.
+    pub fn len(&self) -> usize {
+        self.entities.len()
+    }
+
+    /// Returns true only if there are no entities in the Offspring.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Takes the entities out of self to create a new Offspring.
     ///
     /// Useful when you want to release a new Entity Offspring into the

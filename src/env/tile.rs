@@ -254,6 +254,12 @@ impl<'a, 'e, K: PartialEq, C> TileView<'a, 'e, K, C> {
     pub fn contains_kind(&self, kind: K) -> bool {
         self.entities().any(|e| e.kind() == kind)
     }
+
+    /// Gets the total number of entities in this Tile of the given Kind,
+    /// without considering the Entity that is seeing the tile.
+    pub fn count_kind(&self, kind: K) -> usize {
+        self.entities().filter(|e| e.kind() == kind).count()
+    }
 }
 
 impl<'a, 'e, K, C> TileView<'a, 'e, K, C> {

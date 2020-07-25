@@ -122,7 +122,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
         self.entities.values().map(|entities| entities.len()).sum()
     }
 
-    /// Gets the total number of entities in the environment of the given kind.
+    /// Gets the total number of entities in the Environment of the given Kind.
     pub fn count_kind(&self, kind: &K) -> usize {
         self.entities
             .get(kind)
