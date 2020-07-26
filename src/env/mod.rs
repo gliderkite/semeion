@@ -117,6 +117,11 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
         Ok(())
     }
 
+    /// Returns true only if no Entity is currently in the Environment.
+    pub fn is_empty(&self) -> bool {
+        self.count() == 0
+    }
+
     /// Gets the total number of entities in the environment.
     pub fn count(&self) -> usize {
         self.entities.values().map(|entities| entities.len()).sum()
@@ -135,21 +140,19 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
         self.generation
     }
 
-    /// Gets an iterator over all the entities of the given Kind.
+    /// Gets an iterator over all the entities in the Environment.
     ///
-    /// The entities are returned in arbitrary order. If no entities of the given
-    /// Kind exists in the Environment, None is returned.
-    pub fn entities(
-        &self,
-        kind: &K,
-    ) -> Option<impl Iterator<Item = &entity::Trait<'e, K, C>>> {
+    /// The entities will be returned in an arbitrary order.
+    pub fn entities(&self) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
         self.entities
-            .get(kind)
-            .map(|entities| entities.values().map(|e| &**e))
+            .values()
+            .map(|e| e.values().map(|e| &**e))
+            .flatten()
     }
 
     /// Gets an iterator over all the entities located at the given location.
     ///
+    /// The entities will be returned in an arbitrary order.
     /// The Environment is seen as a Torus from this method, therefore, out of
     /// bounds offsets will be translated considering that the Environment
     /// edges are joined.
