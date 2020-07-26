@@ -238,13 +238,13 @@ impl<'a, 'e, K, C> TileView<'a, 'e, K, C> {
 
     /// Gets the total number of entities located in this Tile, including the
     /// Entity that is seeing the tile.
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.tile.entities.len()
     }
 
     /// Returns true only if there are no entities located in this tile.
     pub fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.count() == 0
     }
 }
 

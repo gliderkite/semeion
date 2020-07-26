@@ -104,7 +104,7 @@ impl<'a> Entity<'a> for Cell<'a> {
             .immediate_border(scope)
             .expect("Invalid border")
             .iter()
-            .map(|t| t.len())
+            .map(|t| t.count())
             .sum();
         if !(count == 2 || count == 3) {
             // this cell will die this generation
@@ -135,7 +135,7 @@ impl<'a> Entity<'a> for Cell<'a> {
             if !neighborhood.tile(offset).is_empty() {
                 // if there is an entity in this tile, it must be a single living
                 // Cell, anything else would be an error
-                debug_assert_eq!(neighborhood.tile(offset).len(), 1);
+                debug_assert_eq!(neighborhood.tile(offset).count(), 1);
                 continue;
             }
 
@@ -145,7 +145,7 @@ impl<'a> Entity<'a> for Cell<'a> {
                 .border(offset, scope)
                 .expect("Invalid border")
                 .iter()
-                .map(|t| t.len())
+                .map(|t| t.count())
                 .sum();
             // any dead cell with three live neighbors becomes a live cell
             if count == 3 {

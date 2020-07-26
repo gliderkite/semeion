@@ -24,13 +24,13 @@ impl<'e, K, C> Offspring<'e, K, C> {
     }
 
     /// Gets the number of entities in the Offspring.
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.entities.len()
     }
 
     /// Returns true only if there are no entities in the Offspring.
     pub fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.count() == 0
     }
 
     /// Takes the entities out of self to create a new Offspring.
