@@ -7,14 +7,14 @@ pub struct Point<T> {
     pub y: T,
 }
 
-/// Represents the dimension of a grid as the integer number of columns and rows.
+/// The dimension of a rectangular grid as the integer number of columns and rows.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Dimension {
     pub x: i32,
     pub y: i32,
 }
 
-/// The size of a Shape represented as number of pixels.
+/// The size of a graphic element represented as number of pixels.
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct Size {
     pub width: f32,
@@ -32,11 +32,29 @@ pub type Offset = Point<i32>;
 /// pixel coordinates.
 pub type Coordinate = Point<f32>;
 
-/// The scope of an Entity, defined as the maximum distance between the tile
+/// The scope of an Entity.
+///
+/// The scope of an Entity represents the maximum distance between the tile
 /// where the Entity is located, and the farthest possible tile the Entity can
 /// see or influence.
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Scope(usize);
+
+/// The different representations of distances between two Locations.
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum Distance {
+    /// The straight line distance between two points.
+    Euclidean,
+    /// The distance between two points measured along axes at right angles.
+    Manhattan,
+}
+
+impl Default for Distance {
+    /// Gets the Euclidean distance representation.
+    fn default() -> Self {
+        Self::Euclidean
+    }
+}
 
 impl Coordinate {
     /// Gets the origin coordinates in (0.0, 0.0).
@@ -49,6 +67,23 @@ impl Location {
     /// Gets the origin coordinates in (0, 0).
     pub const fn origin() -> Self {
         Self { x: 0, y: 0 }
+    }
+
+    /// Gets the distance between self and the given location according to a
+    /// specific representation.
+    pub fn distance(self, other: Self, representation: Distance) -> usize {
+        match representation {
+            Distance::Euclidean => {
+                let x2 = self.x.saturating_sub(other.x).pow(2) as f64;
+                let y2 = self.y.saturating_sub(other.y).pow(2) as f64;
+                (x2 + y2).sqrt() as usize
+            }
+            Distance::Manhattan => {
+                let x = self.x.saturating_sub(other.x).abs();
+                let y = self.y.saturating_sub(other.y).abs();
+                (x + y) as usize
+            }
+        }
     }
 
     /// Converts the Point into a point expressed as pixel coordinates, according
