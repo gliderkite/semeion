@@ -164,6 +164,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     }
 
     /// Moves forwards to the next generation.
+    /// Returns the current generation step number.
     ///
     /// Moving to the next generation involves the following actions sorted by
     /// order:
@@ -180,11 +181,12 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// This method will return an error if any of the calls to `Entity::observe()`
     /// or `Entity::act()` returns an error, in which case none of the steps that
     /// involve the update of the environment will take place.
-    pub fn nextgen(&mut self) -> Result<(), Error> {
+    pub fn nextgen(&mut self) -> Result<u64, Error> {
         self.next(Option::<&EntityClosure<'e, K, C>>::None)
     }
 
     /// Moves forwards to the next generation.
+    /// Returns the current generation step number.
     ///
     /// Follows the same semantic of `Environment::nextgen()`, but allows to call
     /// the provided closure for each Entity in the Environment. The closure
@@ -192,7 +194,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// of each entity.
     /// Returns an error if any of the calls to the provided closure returns an
     /// error.
-    pub fn nextgen_with<F>(&mut self, entity_func: F) -> Result<(), Error>
+    pub fn nextgen_with<F>(&mut self, entity_func: F) -> Result<u64, Error>
     where
         F: Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error>,
     {
@@ -200,7 +202,8 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     }
 
     /// Moves forwards to the next generation.
-    fn next<F>(&mut self, entity_func: Option<F>) -> Result<(), Error>
+    /// Returns the current generation step number.
+    fn next<F>(&mut self, entity_func: Option<F>) -> Result<u64, Error>
     where
         F: Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error>,
     {
@@ -213,8 +216,8 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
         self.populate_with_offspring();
         self.depopulate_dead();
 
-        self.generation += 1;
-        Ok(())
+        self.generation = self.generation.wrapping_add(1);
+        Ok(self.generation)
     }
 
     /// Inserts a new entity in the environment according to its location.

@@ -170,6 +170,8 @@ impl Offset {
                 offsets.push(Offset { x, y });
             }
         }
+
+        debug_assert!(!offsets.is_empty());
         offsets
     }
 
