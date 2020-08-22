@@ -1,5 +1,3 @@
-use std::fmt::Debug;
-
 use super::*;
 
 pub use lifespan::*;
@@ -29,7 +27,7 @@ pub type Id = usize;
 /// this Entity without requiring a `'static` lifetime.
 /// This lifetime bound does not apply to mutable references, since they cannot
 /// be copied without violate uniqueness.
-pub trait Entity<'e>: Debug {
+pub trait Entity<'e> {
     /// The type of the Entity kind.
     type Kind;
 
@@ -220,5 +218,5 @@ pub trait Entity<'e>: Debug {
     }
 }
 
-/// The Entity Trait type alias.
-pub(crate) type Trait<'e, K, C> = dyn Entity<'e, Kind = K, Context = C> + 'e;
+/// The Entity Trait type alias with explicit lifetime bound.
+pub type Trait<'e, K, C> = dyn Entity<'e, Kind = K, Context = C> + 'e;

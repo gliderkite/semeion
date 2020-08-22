@@ -13,10 +13,19 @@ pub struct Tiles<'e, K, C> {
 impl<'e, K, C> Tiles<'e, K, C> {
     /// Constructs a new list of tiles of the given dimension with no entities
     /// assigned to it.
-    pub fn new(dimension: Dimension) -> Self {
-        let mut tiles = Vec::new();
-        tiles.resize_with(dimension.len(), Tile::default);
+    pub fn new(dimension: impl Into<Dimension>) -> Self {
+        let dimension = dimension.into();
+        let mut tiles = Vec::with_capacity(dimension.len());
+        for i in 0..dimension.len() {
+            tiles.push(Tile::new(Location::from_one_dimensional(i, dimension)));
+        }
+
         Self { tiles, dimension }
+    }
+
+    /// Gets the Dimension of the Environment.
+    pub fn dimension(&self) -> Dimension {
+        self.dimension
     }
 
     /// Inserts the given Entity in the grid according to its location. If the
@@ -37,7 +46,8 @@ impl<'e, K, C> Tiles<'e, K, C> {
 
     /// Remove the Entity with the given ID from the given location.
     /// Returns whether the Entity was removed or not.
-    pub fn remove(&mut self, id: Id, location: Location) -> bool {
+    pub fn remove(&mut self, id: Id, location: impl Into<Location>) -> bool {
+        let location = location.into();
         let index = location.one_dimensional(self.dimension);
         debug_assert!(index < self.tiles.len());
         let tile = &mut self.tiles[index];
@@ -45,12 +55,19 @@ impl<'e, K, C> Tiles<'e, K, C> {
     }
 
     /// Move the Entity with the given ID between a previous and a new location.
-    pub fn relocate(&mut self, id: Id, from: Location, to: Location) {
+    pub fn relocate(
+        &mut self,
+        id: Id,
+        from: impl Into<Location>,
+        to: impl Into<Location>,
+    ) {
+        let from = from.into();
         let index = from.one_dimensional(self.dimension);
         debug_assert!(index < self.tiles.len());
         let tile = &mut self.tiles[index];
 
         if let Some(e) = tile.entities.remove(&id) {
+            let to = to.into();
             let index = to.one_dimensional(self.dimension);
             let tile = &mut self.tiles[index];
             tile.entities.insert(id, e);
@@ -63,11 +80,13 @@ impl<'e, K, C> Tiles<'e, K, C> {
     /// edges are joined.
     pub fn entities_at(
         &self,
-        location: Location,
+        location: impl Into<Location>,
     ) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
+        let location = location.into();
         let index = location.one_dimensional(self.dimension);
         debug_assert!(index < self.tiles.len());
         let tile = &self.tiles[index];
+        debug_assert_eq!(tile.location, location);
         tile.entities()
     }
 
@@ -98,11 +117,11 @@ impl<'e, K, C> Tiles<'e, K, C> {
                 // by tile from the top-left corner to the bottom-down corner
                 for y in -scope..=scope {
                     for x in -scope..=scope {
-                        let index = center
-                            .clone()
-                            .translate(Offset { x, y }, self.dimension)
-                            .one_dimensional(self.dimension);
+                        let mut location = center;
+                        location.translate(Offset { x, y }, self.dimension);
+                        let index = location.one_dimensional(self.dimension);
                         debug_assert!(index < self.tiles.len());
+
                         neighborhood.push(TileView::with_owner(
                             entity.id(),
                             // This is safe only if the indexes are all unique,
@@ -130,13 +149,17 @@ impl<'e, K, C> Tiles<'e, K, C> {
 /// *weak* references to the entities.
 #[derive(Debug)]
 pub struct Tile<'e, K, C> {
+    // the location of the Tile in the Environment
+    location: Location,
+    // the entities that currently occupy this Tile
     entities: HashMap<Id, *mut entity::Trait<'e, K, C>>,
 }
 
-impl<'e, K, C> Default for Tile<'e, K, C> {
-    /// Constructs an empty Tile.
-    fn default() -> Self {
+impl<'e, K, C> Tile<'e, K, C> {
+    /// Constructs a new Tile with the given Location and no entities.
+    fn new(location: impl Into<Location>) -> Self {
         Self {
+            location: location.into(),
             entities: HashMap::default(),
         }
     }
@@ -184,7 +207,12 @@ pub struct TileView<'a, 'e, K, C> {
     tile: &'a mut Tile<'e, K, C>,
 }
 
-impl<'a, 'e: 'a, K, C> TileView<'a, 'e, K, C> {
+impl<'a, 'e, K, C> TileView<'a, 'e, K, C> {
+    /// Gets the Location of this Tile within the Environment.
+    pub fn location(&self) -> Location {
+        self.tile.location
+    }
+
     /// Gets an iterator over all the entities located in this Tile that does not
     /// include the Entity that is seeing the tile.
     ///
@@ -195,8 +223,8 @@ impl<'a, 'e: 'a, K, C> TileView<'a, 'e, K, C> {
         })
     }
 
-    /// Gets an iterator over mutable entities located in this Tile that does not
-    /// include the Entity that is seeing the tile.
+    /// Gets an iterator over all the mutable entities located in this Tile that
+    /// does not include the Entity that is seeing the tile.
     ///
     /// The entities are returned in arbitrary order.
     pub fn entities_mut(
@@ -210,13 +238,27 @@ impl<'a, 'e: 'a, K, C> TileView<'a, 'e, K, C> {
 
     /// Gets the total number of entities located in this Tile, including the
     /// Entity that is seeing the tile.
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.tile.entities.len()
     }
 
     /// Returns true only if there are no entities located in this tile.
     pub fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.count() == 0
+    }
+}
+
+impl<'a, 'e, K: PartialEq, C> TileView<'a, 'e, K, C> {
+    /// Returns true only if this Tile contains an Entity of the given Kind,
+    /// without considering the Entity that is seeing the tile.
+    pub fn contains_kind(&self, kind: K) -> bool {
+        self.entities().any(|e| e.kind() == kind)
+    }
+
+    /// Gets the total number of entities in this Tile of the given Kind,
+    /// without considering the Entity that is seeing the tile.
+    pub fn count_kind(&self, kind: K) -> usize {
+        self.entities().filter(|e| e.kind() == kind).count()
     }
 }
 

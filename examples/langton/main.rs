@@ -18,6 +18,7 @@ impl<'a> GameState<'a> {
     /// entities.
     fn new(ctx: &mut Context) -> Result<Self, GameError> {
         let mut env = Environment::new(env::dimension());
+        debug_assert!(env.is_empty());
         // a grid as a static entity used only for drawing purposes in order to
         // show the white grid cells borders
         env.insert(Grid::new(grid::mesh(ctx)?));

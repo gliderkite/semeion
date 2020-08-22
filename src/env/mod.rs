@@ -1,6 +1,4 @@
 use std::collections::{BTreeMap, HashMap};
-use std::fmt::Debug;
-use std::hash::Hash;
 
 use super::*;
 use tile::*;
@@ -48,15 +46,12 @@ type EntityClosure<'e, K, C> =
 /// bound for the objects (immutable references lifetimes) that implement the
 /// Entity trait, and it allows to propagate the same bound to the entities
 /// Offspring.
-#[derive(Debug)]
 pub struct Environment<'e, K, C> {
     // the list of strong references to the entities
     entities: EntitiesKinds<'e, K, C>,
     // the (1-dimensional) grid of tiles that stores week references to the
     // entities according to their location
     tiles: Tiles<'e, K, C>,
-    // the environment dimension
-    dimension: Dimension,
     // the latest snapshot of the environment, used to update the entities
     // properties within it at each generation
     snapshots: Vec<Snapshot<K>>,
@@ -64,26 +59,29 @@ pub struct Environment<'e, K, C> {
     generation: u64,
 }
 
-#[derive(Debug)]
 struct Snapshot<K> {
     id: Id,
     kind: K,
     location: Location,
 }
 
-impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
+impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// Constructs a new environment with the given dimension.
     ///
     /// The dimension represents the size of the grid of squared tiles of same
     /// side length, as number of columns and rows.
-    pub fn new(dimension: Dimension) -> Self {
+    pub fn new(dimension: impl Into<Dimension>) -> Self {
         Self {
             entities: BTreeMap::new(),
             tiles: Tiles::new(dimension),
-            dimension,
             snapshots: Vec::default(),
             generation: 0,
         }
+    }
+
+    /// Gets the Dimension of the Environment.
+    pub fn dimension(&self) -> Dimension {
+        self.tiles.dimension()
     }
 
     /// Inserts the given Entity into the Environment.
@@ -105,7 +103,12 @@ impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
     ///
     /// Returns an error if any of the draw methods returns an error.
     /// The order of draw calls for each entity of the same type is arbitrary.
-    pub fn draw(&self, ctx: &mut C, transform: Transform) -> Result<(), Error> {
+    pub fn draw(
+        &self,
+        ctx: &mut C,
+        transform: impl Into<Transform>,
+    ) -> Result<(), Error> {
+        let transform = transform.into();
         for entities in self.entities.values() {
             for entity in entities.values() {
                 entity.draw(ctx, transform)?;
@@ -114,17 +117,22 @@ impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
         Ok(())
     }
 
+    /// Returns true only if no Entity is currently in the Environment.
+    pub fn is_empty(&self) -> bool {
+        self.count() == 0
+    }
+
     /// Gets the total number of entities in the environment.
     pub fn count(&self) -> usize {
         self.entities.values().map(|entities| entities.len()).sum()
     }
 
-    /// Gets the total number of entities in the environment by kind.
-    pub fn count_by_kind(&self) -> HashMap<&K, usize> {
+    /// Gets the total number of entities in the Environment of the given Kind.
+    pub fn count_kind(&self, kind: &K) -> usize {
         self.entities
-            .iter()
-            .map(|(kind, entities)| (kind, entities.len()))
-            .collect()
+            .get(kind)
+            .map(|entities| entities.len())
+            .unwrap_or(0)
     }
 
     /// Gets the current generation step number.
@@ -132,32 +140,31 @@ impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
         self.generation
     }
 
-    /// Gets an iterator over all the entities of the given Kind.
+    /// Gets an iterator over all the entities in the Environment.
     ///
-    /// The entities are returned in arbitrary order. If no entities of the given
-    /// Kind exists in the Environment, None is returned.
-    pub fn entities(
-        &self,
-        kind: &K,
-    ) -> Option<impl Iterator<Item = &entity::Trait<'e, K, C>>> {
+    /// The entities will be returned in an arbitrary order.
+    pub fn entities(&self) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
         self.entities
-            .get(kind)
-            .map(|entities| entities.values().map(|e| &**e))
+            .values()
+            .map(|e| e.values().map(|e| &**e))
+            .flatten()
     }
 
     /// Gets an iterator over all the entities located at the given location.
     ///
+    /// The entities will be returned in an arbitrary order.
     /// The Environment is seen as a Torus from this method, therefore, out of
     /// bounds offsets will be translated considering that the Environment
     /// edges are joined.
     pub fn entities_at(
         &self,
-        location: Location,
+        location: impl Into<Location>,
     ) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
         self.tiles.entities_at(location)
     }
 
     /// Moves forwards to the next generation.
+    /// Returns the current generation step number.
     ///
     /// Moving to the next generation involves the following actions sorted by
     /// order:
@@ -174,11 +181,12 @@ impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
     /// This method will return an error if any of the calls to `Entity::observe()`
     /// or `Entity::act()` returns an error, in which case none of the steps that
     /// involve the update of the environment will take place.
-    pub fn nextgen(&mut self) -> Result<(), Error> {
+    pub fn nextgen(&mut self) -> Result<u64, Error> {
         self.next(Option::<&EntityClosure<'e, K, C>>::None)
     }
 
     /// Moves forwards to the next generation.
+    /// Returns the current generation step number.
     ///
     /// Follows the same semantic of `Environment::nextgen()`, but allows to call
     /// the provided closure for each Entity in the Environment. The closure
@@ -186,7 +194,7 @@ impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
     /// of each entity.
     /// Returns an error if any of the calls to the provided closure returns an
     /// error.
-    pub fn nextgen_with<F>(&mut self, entity_func: F) -> Result<(), Error>
+    pub fn nextgen_with<F>(&mut self, entity_func: F) -> Result<u64, Error>
     where
         F: Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error>,
     {
@@ -194,7 +202,8 @@ impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
     }
 
     /// Moves forwards to the next generation.
-    fn next<F>(&mut self, entity_func: Option<F>) -> Result<(), Error>
+    /// Returns the current generation step number.
+    fn next<F>(&mut self, entity_func: Option<F>) -> Result<u64, Error>
     where
         F: Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error>,
     {
@@ -207,8 +216,8 @@ impl<'e, K: Hash + Ord, C> Environment<'e, K, C> {
         self.populate_with_offspring();
         self.depopulate_dead();
 
-        self.generation += 1;
-        Ok(())
+        self.generation = self.generation.wrapping_add(1);
+        Ok(self.generation)
     }
 
     /// Inserts a new entity in the environment according to its location.

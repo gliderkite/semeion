@@ -40,8 +40,11 @@ impl<'a> GameState<'a> {
     /// Constructs the game state by populating the environment with the initial
     /// entities.
     fn new() -> Result<Self, GameError> {
+        let env = Environment::new(env::dimension());
+        debug_assert!(env.is_empty());
+
         Ok(Self {
-            env: Environment::new(env::dimension()),
+            env,
             visited: Rc::new(RefCell::new(HashSet::new())),
         })
     }

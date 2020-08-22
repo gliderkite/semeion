@@ -34,7 +34,7 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
     /// The Neighborhood is seen as a Torus from this method, therefore, out of
     /// bounds offsets will be translated considering that the Neighborhood edges
     /// are joined.
-    pub fn tile(&self, offset: Offset) -> &TileView<'a, 'e, K, C> {
+    pub fn tile(&self, offset: impl Into<Offset>) -> &TileView<'a, 'e, K, C> {
         &self.tiles[self.index(offset)]
     }
 
@@ -44,8 +44,10 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
     /// The Neighborhood is seen as a Torus from this method, therefore, out of
     /// bounds offsets will be translated considering that the Neighborhood edges
     /// are joined.
-    pub fn tile_mut(&mut self, offset: Offset) -> &mut TileView<'a, 'e, K, C> {
-        debug_assert!(!self.tiles.is_empty());
+    pub fn tile_mut(
+        &mut self,
+        offset: impl Into<Offset>,
+    ) -> &mut TileView<'a, 'e, K, C> {
         let index = self.index(offset);
         &mut self.tiles[index]
     }
@@ -66,12 +68,14 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
     /// given Scope, that represents the distance from the Tile T.
     ///
     /// The tiles are returned in arbitrary order. Returns None if any of the
-    /// border tiles is out of the Neighborhood dimension for the given Scope.
+    /// border tiles is beyond the Neighborhood dimension for the given Scope.
     pub fn border(
         &self,
-        offset: Offset,
-        scope: Scope,
+        offset: impl Into<Offset>,
+        scope: impl Into<Scope>,
     ) -> Option<Vec<&TileView<'a, 'e, K, C>>> {
+        let offset = offset.into();
+        let scope = scope.into();
         // the location of the tile T relative to the center of the Neighborhood
         let loc = self.dimension.center() + offset;
 
@@ -87,19 +91,34 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
         let mut tiles =
             Vec::with_capacity(Dimension::perimeter_with_scope(scope));
         for mut delta in Offset::border(scope) {
-            let loc = *delta.translate(offset, self.dimension);
-            tiles.push(self.tile(loc))
+            let center_offset = *delta.translate(offset, self.dimension);
+            tiles.push(self.tile(center_offset))
         }
 
         debug_assert_eq!(tiles.capacity(), tiles.len());
         Some(tiles)
     }
 
+    /// Gets a list of tiles that surround the center Tile of this Neighborhood,
+    /// and according to the given Scope, that represents the distance from the
+    /// center Tile.
+    ///
+    /// The tiles are returned in arbitrary order. Returns None if any of the
+    /// border tiles is beyond the Neighborhood dimension for the given Scope.
+    pub fn immediate_border(
+        &self,
+        scope: impl Into<Scope>,
+    ) -> Option<Vec<&TileView<'a, 'e, K, C>>> {
+        self.border(Offset::origin(), scope)
+    }
+
     /// Gets the index of the Tile located at the given offset from the center
-    /// of this Neighborhood. The Neighborhood is seen as a Torus from this
-    /// method, therefore, out of bounds offsets will be translated
-    /// considering that the Neighborhood edges are joined.
-    fn index(&self, offset: Offset) -> usize {
+    /// of this Neighborhood.
+    ///
+    /// The Neighborhood is seen as a Torus from this method, therefore, out of
+    /// bounds offsets will be translated considering that the Neighborhood
+    /// edges are joined.
+    fn index(&self, offset: impl Into<Offset>) -> usize {
         debug_assert!(!self.tiles.is_empty());
         let mut center = self.dimension.center();
         let index = center
@@ -111,18 +130,40 @@ impl<'a, 'e, K, C> Neighborhood<'a, 'e, K, C> {
 
     /// Returns true only if this Neighborhood contains unique Tiles.
     fn is_unique(&self) -> bool {
-        let mut uniq = HashSet::with_capacity(self.tiles.len());
+        let mut refs = HashSet::with_capacity(self.tiles.len());
+        let mut locations = HashSet::with_capacity(self.tiles.len());
+        // for a Neighborhood to be unique it must contain only weak references
+        // to unique tiles, and each tile must point to an unique location
         self.tiles
             .iter()
-            .all(move |tile| uniq.insert(tile.inner() as *const Tile<'e, K, C>))
+            .all(move |tile| refs.insert(tile.inner() as *const Tile<'e, K, C>))
+            && self
+                .tiles
+                .iter()
+                .all(move |tile| locations.insert(tile.location()))
+    }
+}
+
+impl<'a, 'e, K: PartialEq, C> Neighborhood<'a, 'e, K, C> {
+    /// Returns true only if any of the Tiles in this Neighborhood contains an
+    /// Entity of the given Kind, without considering the Entity that is
+    /// inspecting this Neighborhood.
+    pub fn contains_kind(&self, kind: K) -> bool {
+        self.tiles
+            .iter()
+            .map(|t| t.entities())
+            .flatten()
+            .any(|e| e.kind() == kind)
     }
 }
 
 impl<'a, 'e, K, C> From<Vec<TileView<'a, 'e, K, C>>>
     for Neighborhood<'a, 'e, K, C>
 {
-    /// Constructs a new Neighborhood from a list of tiles that can encode a
-    /// squared grid.
+    /// Constructs a new Neighborhood from a list of tiles.
+    ///
+    /// The list of tiles encodes a squared grid constructed top to bottom and
+    /// left to right.
     fn from(tiles: Vec<TileView<'a, 'e, K, C>>) -> Self {
         debug_assert!(!tiles.is_empty());
         let length = tiles.len() as f64;

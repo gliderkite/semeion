@@ -143,7 +143,7 @@ impl<'a> Entity<'a> for Cell<'a> {
                 // head state
                 let hood = neighborhood.expect("Invalid neighborhood");
                 let border = hood
-                    .border(Offset::origin(), Scope::with_magnitude(1))
+                    .immediate_border(Scope::with_magnitude(1))
                     .expect("Invalid border");
                 let neighbors = border.iter().map(|t| t.entities()).flatten();
 

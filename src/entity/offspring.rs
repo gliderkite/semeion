@@ -1,7 +1,6 @@
 use super::*;
 
 /// The Entity offspring.
-#[derive(Debug)]
 pub struct Offspring<'e, K, C> {
     entities: Vec<Box<entity::Trait<'e, K, C>>>,
 }
@@ -22,6 +21,16 @@ impl<'e, K, C> Offspring<'e, K, C> {
         E: Entity<'e, Kind = K, Context = C> + 'e,
     {
         self.entities.push(Box::new(entity));
+    }
+
+    /// Gets the number of entities in the Offspring.
+    pub fn count(&self) -> usize {
+        self.entities.len()
+    }
+
+    /// Returns true only if there are no entities in the Offspring.
+    pub fn is_empty(&self) -> bool {
+        self.count() == 0
     }
 
     /// Takes the entities out of self to create a new Offspring.

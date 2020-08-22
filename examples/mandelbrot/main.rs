@@ -32,6 +32,7 @@ impl<'a> GameState<'a> {
     fn new() -> Result<Self, GameError> {
         let dimension = env::dimension();
         let mut env = Environment::new(dimension);
+        debug_assert!(env.is_empty());
 
         // populate the whole environment, where each pixel is represented by
         // its own entity
