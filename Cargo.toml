@@ -1,6 +1,6 @@
 [package]
 name = "semeion"
-version = "0.7.0"
+version = "0.8.0"
 authors = ["Marco Conte <gliderkite@gmail.com>"]
 edition = "2018"
 description = "A generic 2D environment simulator"
@@ -12,6 +12,10 @@ keywords = ["gamedev", "graphics", "engine", "entity", "2D"]
 exclude = ["*.gif"]
 
 [dependencies]
+rayon = { version = "1.4", optional = true } 
+
+[features]
+parallel = ["rayon"]
 
 [[example]]
 name = "langton"

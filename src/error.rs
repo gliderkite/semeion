@@ -30,7 +30,8 @@ pub enum Error {
     /// #[derive(Debug)]
     /// enum MyError {
     ///     Audio,
-    ///     Game
+    ///     Game,
+    ///     InvalidArg { err: String }
     /// }
     ///
     /// impl fmt::Display for MyError {
@@ -55,7 +56,7 @@ pub enum Error {
     ///     let my_err = err.as_any().downcast_ref::<MyError>().unwrap();
     /// }
     /// ```
-    Any(Box<dyn Any>),
+    Any(Box<dyn Any + Send + Sync>),
 }
 
 impl fmt::Display for Error {
@@ -78,7 +79,7 @@ impl Error {
     }
 
     /// Constructs a new Error with the given custom value.
-    pub fn with_err(err: impl Any + 'static) -> Self {
+    pub fn with_err(err: impl Any + Send + Sync + 'static) -> Self {
         Self::Any(Box::new(err))
     }
 }

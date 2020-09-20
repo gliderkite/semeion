@@ -68,7 +68,7 @@ impl<'a> event::EventHandler for GameState<'a> {
         // plane bounds
         let plane = self.plane;
         self.env
-            .nextgen_with(|e| {
+            .nextgen_with(Box::new(move |e| {
                 if let (Some(loc), Some(state)) = (e.location(), e.state_mut())
                 {
                     let state = state
@@ -79,7 +79,7 @@ impl<'a> event::EventHandler for GameState<'a> {
                     state.set_point(point);
                 }
                 Ok(())
-            })
+            }))
             .expect("Cannot move to the next generation");
 
         // iterate over each pixel to get its current state and its RGBA value
@@ -219,9 +219,14 @@ impl<'a> event::EventHandler for GameState<'a> {
 fn main() -> GameResult {
     use ggez::conf::{WindowMode, WindowSetup};
 
+    #[cfg(not(feature = "parallel"))]
+    let title = "Mandelbrot!";
+    #[cfg(feature = "parallel")]
+    let title = "Mandelbrot Parallel!";
+
     let (ctx, events_loop) =
         &mut ContextBuilder::new("mandelbrot", "Marco Conte")
-            .window_setup(WindowSetup::default().title("Mandelbrot!"))
+            .window_setup(WindowSetup::default().title(title))
             .window_mode(
                 WindowMode::default().dimensions(env::WIDTH, env::HEIGHT),
             )

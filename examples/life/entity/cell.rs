@@ -34,8 +34,8 @@ impl<'a> Cell<'a> {
         location: Location,
         mesh: &'a graphics::Mesh,
         visited: Weak<RefCell<HashSet<Location>>>,
-    ) -> Self {
-        Self {
+    ) -> Box<Self> {
+        Box::new(Self {
             // ID are simply randomly generated as the possibility of collisions
             // are very very low
             id: rand::random(),
@@ -47,7 +47,7 @@ impl<'a> Cell<'a> {
             mesh,
             offspring: Offspring::default(),
             visited,
-        }
+        })
     }
 }
 
