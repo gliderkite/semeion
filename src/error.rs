@@ -56,7 +56,7 @@ pub enum Error {
     ///     let my_err = err.as_any().downcast_ref::<MyError>().unwrap();
     /// }
     /// ```
-    Any(Box<dyn Any + Send + Sync>),
+    Any(Box<dyn Any + Send>),
 }
 
 impl fmt::Display for Error {
@@ -79,7 +79,7 @@ impl Error {
     }
 
     /// Constructs a new Error with the given custom value.
-    pub fn with_err(err: impl Any + Send + Sync + 'static) -> Self {
+    pub fn with_err(err: impl Any + Send + 'static) -> Self {
         Self::Any(Box::new(err))
     }
 }
