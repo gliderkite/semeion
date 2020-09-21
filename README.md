@@ -39,16 +39,16 @@ For these situations, it is possible to gain significant advantage by spawning
 multiple threads and running the simulation in parallel (profiling your code is
 always advised before taking final decisions).
 
-You can enable this behavior by specifying the optional feature `parallel` in
-your `Cargo.toml`:
+At the moment, you can enable this feature only at compile time, by specifying
+the optional feature `parallel` in your `Cargo.toml`:
 
 ```toml
 semeion = { version = "0.8", features = ["parallel"] }
 ```
 
-To use this feature, the only change required to your code is that all your
-entities need to be [Send](https://doc.rust-lang.org/std/marker/trait.Send.html)
-and [Sync](https://doc.rust-lang.org/std/marker/trait.Sync.html).
+The only requirement is that all your entities need to be
+[Send](https://doc.rust-lang.org/std/marker/trait.Send.html) and
+[Sync](https://doc.rust-lang.org/std/marker/trait.Sync.html).
 
 
 ## Examples
