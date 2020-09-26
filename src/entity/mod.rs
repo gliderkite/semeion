@@ -219,4 +219,10 @@ pub trait Entity<'e> {
 }
 
 /// The Entity Trait type alias with explicit lifetime bound.
+#[cfg(not(feature = "parallel"))]
 pub type Trait<'e, K, C> = dyn Entity<'e, Kind = K, Context = C> + 'e;
+
+/// The Entity Trait type alias with explicit lifetime bound.
+#[cfg(feature = "parallel")]
+pub type Trait<'e, K, C> =
+    dyn Entity<'e, Kind = K, Context = C> + 'e + Send + Sync;

@@ -95,7 +95,7 @@ impl<'e, K, C> Tiles<'e, K, C> {
     /// the Entity forces its neighborhood to wrap onto itself due to the
     /// dimensions of the Environment being not big enough to contain it.
     pub fn neighborhood(
-        &mut self,
+        &self,
         entity: &entity::Trait<'e, K, C>,
     ) -> Option<Neighborhood<'_, 'e, K, C>> {
         match (entity.location(), entity.scope()) {
@@ -111,7 +111,6 @@ impl<'e, K, C> Tiles<'e, K, C> {
                 let mut neighborhood =
                     Vec::with_capacity(Dimension::len_with_scope(scope));
                 let scope = scope.magnitude() as i32;
-                let tiles_slice = self.tiles.as_mut_ptr();
 
                 // build the portion of the environment seen by the entity tile
                 // by tile from the top-left corner to the bottom-down corner
@@ -122,19 +121,9 @@ impl<'e, K, C> Tiles<'e, K, C> {
                         let index = location.one_dimensional(self.dimension);
                         debug_assert!(index < self.tiles.len());
 
-                        neighborhood.push(TileView::with_owner(
-                            entity.id(),
-                            // This is safe only if the indexes are all unique,
-                            // which is guaranteed by (1) an Entity's neighbors
-                            // cells cannot wrap onto itself even in a small
-                            // torus Environment, (2) the (x, y) coordinates
-                            // yielded by this loop are unique, and (3) the index
-                            // is within the tiles vector bounds.
-                            // Having unique indexes guarantees to not have
-                            // multiple mutable references to the same Tile, even
-                            // when this cannot be checked by the type system.
-                            unsafe { &mut *tiles_slice.add(index) },
-                        ));
+                        let tile = &self.tiles[index];
+                        neighborhood
+                            .push(TileView::with_owner(entity.id(), tile));
                     }
                 }
 
@@ -163,9 +152,7 @@ impl<'e, K, C> Tile<'e, K, C> {
             entities: HashMap::default(),
         }
     }
-}
 
-impl<'e, K, C> Tile<'e, K, C> {
     /// Gets an iterator over all the entities located in this Tile.
     /// The entities are returned in arbitrary order.
     pub fn entities(&self) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
@@ -183,9 +170,9 @@ impl<'e, K, C> Tile<'e, K, C> {
     /// Gets an iterator over all the mutable entities located in this Tile.
     /// The entities are returned in arbitrary order.
     pub fn entities_mut(
-        &mut self,
+        &self,
     ) -> impl Iterator<Item = &mut entity::Trait<'e, K, C>> {
-        self.entities.iter_mut().filter_map(move |(_id, e)| {
+        self.entities.iter().filter_map(move |(_id, e)| {
             // Dereferencing the Entity pointer to return its reference
             // is safe because the Environment guarantees that this
             // method can only be called while the Entity pointed by this
@@ -204,7 +191,7 @@ pub struct TileView<'a, 'e, K, C> {
     id: Option<Id>,
     // the reference to the Tile in the Environment, where the *weak* references
     // to the entities are stored
-    tile: &'a mut Tile<'e, K, C>,
+    tile: &'a Tile<'e, K, C>,
 }
 
 impl<'a, 'e, K, C> TileView<'a, 'e, K, C> {
@@ -264,7 +251,7 @@ impl<'a, 'e, K: PartialEq, C> TileView<'a, 'e, K, C> {
 
 impl<'a, 'e, K, C> TileView<'a, 'e, K, C> {
     /// Constructs a new TileView with a specific Entity as owner.
-    pub(crate) fn with_owner(id: Id, tile: &'a mut Tile<'e, K, C>) -> Self {
+    pub(crate) fn with_owner(id: Id, tile: &'a Tile<'e, K, C>) -> Self {
         Self { id: Some(id), tile }
     }
 

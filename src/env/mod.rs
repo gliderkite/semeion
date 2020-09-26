@@ -6,6 +6,9 @@ use tile::*;
 mod neighborhood;
 mod tile;
 
+#[cfg(feature = "parallel")]
+mod scheduler;
+
 pub use neighborhood::*;
 pub use tile::TileView;
 
@@ -17,8 +20,14 @@ type Entities<'e, K, C> = HashMap<Id, Box<entity::Trait<'e, K, C>>>;
 type EntitiesKinds<'e, K, C> = BTreeMap<K, Entities<'e, K, C>>;
 
 /// Closure over a mutable Entity reference.
+#[cfg(not(feature = "parallel"))]
 type EntityClosure<'e, K, C> =
     dyn Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error>;
+
+/// Closure over a mutable Entity reference.
+#[cfg(feature = "parallel")]
+type EntityClosure<'e, K, C> =
+    dyn Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error> + Sync;
 
 /// The Environment is a grid, of squared tiles with the same size, where all
 /// the entities belong.
@@ -57,6 +66,8 @@ pub struct Environment<'e, K, C> {
     snapshots: Vec<Snapshot<K>>,
     // the generation counter
     generation: u64,
+    #[cfg(feature = "parallel")]
+    scheduler: scheduler::Scheduler,
 }
 
 struct Snapshot<K> {
@@ -71,11 +82,17 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// The dimension represents the size of the grid of squared tiles of same
     /// side length, as number of columns and rows.
     pub fn new(dimension: impl Into<Dimension>) -> Self {
+        let dimension = dimension.into();
         Self {
             entities: BTreeMap::new(),
             tiles: Tiles::new(dimension),
             snapshots: Vec::default(),
             generation: 0,
+            #[cfg(feature = "parallel")]
+            scheduler: scheduler::Scheduler::new(
+                dimension,
+                rayon::current_num_threads(),
+            ),
         }
     }
 
@@ -91,11 +108,12 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// environment has been pre-populated the set of entities stored in it will
     /// depend on the behavior of the entities itself (such ad lifespan increase
     /// and decrease, or generated offspring).
-    pub fn insert<Q>(&mut self, entity: Q)
-    where
-        Q: Entity<'e, Kind = K, Context = C> + 'e,
-    {
-        self.insert_entity(Box::new(entity));
+    pub fn insert(&mut self, mut entity: Box<entity::Trait<'e, K, C>>) {
+        // insert the weak ref in the grid according to the entity location
+        self.tiles.insert(&mut *entity);
+        // insert the strong ref in the entities map
+        let entities = self.entities.entry(entity.kind()).or_default();
+        entities.insert(entity.id(), entity);
     }
 
     /// Draws the environment by iterating over each of its entities, sorted by
@@ -182,7 +200,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// or `Entity::act()` returns an error, in which case none of the steps that
     /// involve the update of the environment will take place.
     pub fn nextgen(&mut self) -> Result<u64, Error> {
-        self.next(Option::<&EntityClosure<'e, K, C>>::None)
+        self.next(Option::<Box<EntityClosure<'e, K, C>>>::None)
     }
 
     /// Moves forwards to the next generation.
@@ -194,19 +212,19 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// of each entity.
     /// Returns an error if any of the calls to the provided closure returns an
     /// error.
-    pub fn nextgen_with<F>(&mut self, entity_func: F) -> Result<u64, Error>
-    where
-        F: Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error>,
-    {
+    pub fn nextgen_with(
+        &mut self,
+        entity_func: Box<EntityClosure<'e, K, C>>,
+    ) -> Result<u64, Error> {
         self.next(Some(entity_func))
     }
 
     /// Moves forwards to the next generation.
     /// Returns the current generation step number.
-    fn next<F>(&mut self, entity_func: Option<F>) -> Result<u64, Error>
-    where
-        F: Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error>,
-    {
+    fn next(
+        &mut self,
+        entity_func: Option<Box<EntityClosure<'e, K, C>>>,
+    ) -> Result<u64, Error> {
         self.record_location();
         self.observe_and_react(entity_func)?;
         self.update_location();
@@ -218,15 +236,6 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
 
         self.generation = self.generation.wrapping_add(1);
         Ok(self.generation)
-    }
-
-    /// Inserts a new entity in the environment according to its location.
-    fn insert_entity(&mut self, mut entity: Box<entity::Trait<'e, K, C>>) {
-        // insert the weak ref in the grid according to the entity location
-        self.tiles.insert(&mut *entity);
-        // insert the strong ref in the entities map
-        let entities = self.entities.entry(entity.kind()).or_default();
-        entities.insert(entity.id(), entity);
     }
 
     /// Takes a snapshot of the environment by storing the entities fields that
@@ -286,7 +295,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
 
         // collect entities offsprings and insert them in the environment
         for entity in offspring {
-            self.insert_entity(entity);
+            self.insert(entity);
         }
     }
 
@@ -325,13 +334,11 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     ///     allowing each entity to react to the same portion of the environment.
     /// Returns an error if any of the calls to `Entity::observe()`,
     /// `Entity::react()`, or the provided closure returns an error.
-    fn observe_and_react<F>(
+    #[cfg(not(feature = "parallel"))]
+    fn observe_and_react(
         &mut self,
-        entity_func: Option<F>,
-    ) -> Result<(), Error>
-    where
-        F: Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error>,
-    {
+        entity_func: Option<Box<EntityClosure<'e, K, C>>>,
+    ) -> Result<(), Error> {
         // if specified, calls the given closure for each entity
         if let Some(entity_func) = entity_func {
             for entities in self.entities.values_mut() {
@@ -355,6 +362,82 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
                 let neighborhood = self.tiles.neighborhood(&**entity);
                 entity.react(neighborhood)?;
             }
+        }
+
+        Ok(())
+    }
+
+    /// Iterate over each entity and allow them to:
+    /// - Execute the provided custom closure the mutable reference of each
+    ///     entity.
+    /// - Manifest their behavior by calling `Entity::observe(neighborhood)`,
+    ///     exposing them to the portion of environment they can see from their
+    ///     current location
+    /// - For all the same entities, call `Entity::react(neighborhood)`,
+    ///     allowing each entity to react to the same portion of the environment.
+    /// Returns an error if any of the calls to `Entity::observe()`,
+    /// `Entity::react()`, or the provided closure returns an error.
+    #[cfg(feature = "parallel")]
+    fn observe_and_react(
+        &mut self,
+        entity_func: Option<Box<EntityClosure<'e, K, C>>>,
+    ) -> Result<(), Error> {
+        use rayon::prelude::*;
+
+        let entities = self
+            .entities
+            .values_mut()
+            .map(|e| e.values_mut())
+            .flatten()
+            .map(|e| &mut **e);
+
+        let scheduler::Tasks {
+            mut sync,
+            mut unsync,
+        } = self.scheduler.get_tasks(entities);
+
+        let tiles = &self.tiles;
+
+        // if specified, calls the given closure for each entity
+        if let Some(entity_func) = entity_func {
+            sync.par_iter_mut().try_for_each(|entities| {
+                for e in entities.iter_mut() {
+                    entity_func(&mut **e)?;
+                }
+                Ok(())
+            })?;
+
+            for e in &mut unsync {
+                entity_func(&mut **e)?;
+            }
+        }
+
+        // then allow all the entities to observe their neighborhood
+        sync.par_iter_mut().try_for_each(|entities| {
+            for e in entities.iter_mut() {
+                let neighborhood = tiles.neighborhood(*e);
+                e.observe(neighborhood)?;
+            }
+            Ok(())
+        })?;
+
+        for e in &mut unsync {
+            let neighborhood = self.tiles.neighborhood(*e);
+            e.observe(neighborhood)?;
+        }
+
+        // finally allow the same entities to react to the same neighborhoods
+        sync.par_iter_mut().try_for_each(|entities| {
+            for e in entities.iter_mut() {
+                let neighborhood = tiles.neighborhood(*e);
+                e.react(neighborhood)?;
+            }
+            Ok(())
+        })?;
+
+        for e in unsync {
+            let neighborhood = self.tiles.neighborhood(e);
+            e.react(neighborhood)?;
         }
 
         Ok(())

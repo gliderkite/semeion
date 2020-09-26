@@ -48,8 +48,8 @@ impl<'a> Ant<'a> {
         location: Location,
         mesh: graphics::Mesh,
         offspring_mesh: graphics::Mesh,
-    ) -> Self {
-        Self {
+    ) -> Box<Self> {
+        Box::new(Self {
             // IDs are simply randomly generated as the possibility of collisions
             // are very very low
             id: rand::random(),
@@ -58,7 +58,7 @@ impl<'a> Ant<'a> {
             location,
             offspring_mesh,
             offspring: Offspring::default(),
-        }
+        })
     }
 
     /// Turn the Ant 90° clockwise and move forwards of one tile.

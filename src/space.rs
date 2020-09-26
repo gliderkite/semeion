@@ -256,6 +256,22 @@ impl From<Size> for (f32, f32) {
 }
 
 impl Dimension {
+    /// Constructs new dimension where the overall rectangle is composed by the
+    /// lowest number of rectangles of equal size lower than the given `count`,
+    /// so that they should be aligned in such a manner that the number of rows
+    /// and number of columns are equal (with the last row possibly not being
+    /// completely filled).
+    pub fn with_eq_rectangles(count: usize) -> Self {
+        debug_assert_ne!(count, 0);
+        let count = count as f64;
+        let x = count.sqrt().ceil();
+        let y = (count / x).ceil();
+        Self {
+            x: x as i32,
+            y: y as i32,
+        }
+    }
+
     /// Gets the number of tiles in a grid of given Dimension, equal to the
     /// number of row by the number of columns.
     pub fn len(self) -> usize {
@@ -296,6 +312,17 @@ impl Dimension {
     /// Gets the aspect ratio of this Dimension.
     pub fn aspect_ratio(self) -> f32 {
         self.x as f32 / self.y as f32
+    }
+
+    /// Maps self with the given Dimension, and returns the number of rows and
+    /// columns (as new Dimension) that each tile of the given Dimension would
+    /// have to occupy so that all its tiles would fill up self.
+    pub fn scale(self, other: impl Into<Self>) -> Self {
+        let other = other.into();
+        Self {
+            x: other.x / self.x,
+            y: other.y / self.y,
+        }
     }
 
     /// Gets the length of the side of a squared grid (where the number of rows

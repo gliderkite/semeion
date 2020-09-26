@@ -15,12 +15,9 @@ impl<'e, K, C> Default for Offspring<'e, K, C> {
 }
 
 impl<'e, K, C> Offspring<'e, K, C> {
-    /// Inserts a new Entity to the Offspring.
-    pub fn insert<E>(&mut self, entity: E)
-    where
-        E: Entity<'e, Kind = K, Context = C> + 'e,
-    {
-        self.entities.push(Box::new(entity));
+    /// Inserts a new Entity into the Offspring.
+    pub fn insert(&mut self, entity: Box<entity::Trait<'e, K, C>>) {
+        self.entities.push(entity);
     }
 
     /// Gets the number of entities in the Offspring.
