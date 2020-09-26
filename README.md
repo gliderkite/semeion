@@ -12,8 +12,9 @@ generation.
 ## Overview
 
 For an overview of what you can do, and how you can do it with this library, the
-best way to start is to have a look at the several [examples](#examples) that come
-with this project.
+best way to start is to read the
+[introductive blog post](https://gliderkite.github.io/posts/semeion), or to have
+a look at the several [examples](#examples) that come with this project.
 Each of these aims to show a subset of the features set of `semeion`, while
 giving an example of how to make the best use of it.
 While, if you want to have a look at a more complete project that uses
