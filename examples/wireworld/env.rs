@@ -10,7 +10,7 @@ pub const HEIGHT: f32 = 800.0;
 pub const SIDE: f32 = 25.0;
 
 /// Gets the size of the environment.
-pub fn size() -> Size {
+pub const fn size() -> Size {
     Size {
         width: WIDTH,
         height: HEIGHT,

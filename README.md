@@ -69,6 +69,14 @@ The only requirement is that all your entities need to be
    <img src="../assets/life.gif" width="350" height="300">
 
 
+ - [Rule](https://en.wikipedia.org/wiki/Elementary_cellular_automaton)
+
+    ```bash
+    cargo run --release --example rule -- 161
+    ```
+   <img src="../assets/rule.gif" width="350" height="210">
+
+
  - [Wireworld](https://en.wikipedia.org/wiki/Wireworld)
 
    ```bash

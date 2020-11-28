@@ -1,6 +1,7 @@
 use super::*;
 
 /// The Entity offspring.
+#[derive(Debug)]
 pub struct Offspring<'e, K, C> {
     entities: Vec<Box<entity::Trait<'e, K, C>>>,
 }
@@ -15,6 +16,13 @@ impl<'e, K, C> Default for Offspring<'e, K, C> {
 }
 
 impl<'e, K, C> Offspring<'e, K, C> {
+    /// Constructs an empty Offspring with the given capacity.
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            entities: Vec::with_capacity(capacity),
+        }
+    }
+
     /// Inserts a new Entity into the Offspring.
     pub fn insert(&mut self, entity: Box<entity::Trait<'e, K, C>>) {
         self.entities.push(entity);

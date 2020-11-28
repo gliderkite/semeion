@@ -14,7 +14,7 @@ pub use tile::TileView;
 
 /// Unordered map of entities identified by their IDs, where all the entities
 /// belongs to the same Kind.
-type Entities<'e, K, C> = HashMap<Id, Box<entity::Trait<'e, K, C>>>;
+type Entities<'e, K, C> = Vec<Box<entity::Trait<'e, K, C>>>;
 
 /// Sorted map of all the entities by Kind.
 type EntitiesKinds<'e, K, C> = BTreeMap<K, Entities<'e, K, C>>;
@@ -55,6 +55,7 @@ type EntityClosure<'e, K, C> =
 /// bound for the objects (immutable references lifetimes) that implement the
 /// Entity trait, and it allows to propagate the same bound to the entities
 /// Offspring.
+#[derive(Debug)]
 pub struct Environment<'e, K, C> {
     // the list of strong references to the entities
     entities: EntitiesKinds<'e, K, C>,
@@ -70,6 +71,7 @@ pub struct Environment<'e, K, C> {
     scheduler: scheduler::Scheduler,
 }
 
+#[derive(Debug)]
 struct Snapshot<K> {
     id: Id,
     kind: K,
@@ -113,7 +115,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
         self.tiles.insert(&mut *entity);
         // insert the strong ref in the entities map
         let entities = self.entities.entry(entity.kind()).or_default();
-        entities.insert(entity.id(), entity);
+        entities.push(entity);
     }
 
     /// Draws the environment by iterating over each of its entities, sorted by
@@ -128,7 +130,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     ) -> Result<(), Error> {
         let transform = transform.into();
         for entities in self.entities.values() {
-            for entity in entities.values() {
+            for entity in entities {
                 entity.draw(ctx, transform)?;
             }
         }
@@ -164,7 +166,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     pub fn entities(&self) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
         self.entities
             .values()
-            .map(|e| e.values().map(|e| &**e))
+            .map(|e| e.iter().map(|e| &**e))
             .flatten()
     }
 
@@ -246,12 +248,10 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
         self.snapshots.reserve(additional);
 
         for entities in self.entities.values() {
-            for entity in entities.values() {
-                // if the entity has no location there is nothing to update in
-                // the environment
+            for (i, entity) in entities.iter().enumerate() {
                 if let Some(location) = entity.location() {
                     self.snapshots.push(Snapshot {
-                        id: entity.id(),
+                        id: i,
                         kind: entity.kind(),
                         location,
                     });
@@ -263,18 +263,23 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// Updates the environment according to the current entities and previously
     /// taken snapshot.
     fn update_location(&mut self) {
+        // gets the current entity id and location, if the location changed
+        let entities = &self.entities;
+        let find_entity = |snapshot: &Snapshot<K>| {
+            let entity = entities.get(&snapshot.kind)?.get(snapshot.id)?;
+            let location = entity.location()?;
+            if location != snapshot.location {
+                Some((entity.id(), location))
+            } else {
+                None
+            }
+        };
+
         for snapshot in &self.snapshots {
-            // gets the current entity location
-            let get_location = || {
-                self.entities
-                    .get(&snapshot.kind)?
-                    .get(&snapshot.id)?
-                    .location()
-            };
             // update the entity location in the grid of tiles
-            if let Some(location) = get_location() {
-                self.tiles
-                    .relocate(snapshot.id, snapshot.location, location);
+            if let Some((id, location)) = find_entity(snapshot) {
+                debug_assert_ne!(location, snapshot.location);
+                self.tiles.relocate(id, snapshot.location, location);
             }
         }
     }
@@ -286,7 +291,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
         let offspring: Vec<Box<entity::Trait<'e, K, C>>> = self
             .entities
             .values_mut()
-            .map(|e| e.values_mut())
+            .map(|e| e.iter_mut())
             .flatten()
             .filter_map(|e| e.offspring())
             .map(|offspring| offspring.take_entities())
@@ -304,7 +309,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
         for entities in self.entities.values_mut() {
             // remove the weak reference to the entity from the grid of tiles only
             // if it has a location and it reached the end of its lifespan
-            for entity in entities.values() {
+            for entity in entities.iter() {
                 match (entity.location(), entity.lifespan()) {
                     (Some(loc), Some(lifespan)) if !lifespan.is_alive() => {
                         self.tiles.remove(entity.id(), loc);
@@ -314,7 +319,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
             }
             // remove the strong reference to the entity if it reached the end
             // of its lifespan
-            entities.retain(|_, entity| {
+            entities.retain(|entity| {
                 if let Some(lifespan) = entity.lifespan() {
                     lifespan.is_alive()
                 } else {
@@ -342,7 +347,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
         // if specified, calls the given closure for each entity
         if let Some(entity_func) = entity_func {
             for entities in self.entities.values_mut() {
-                for entity in entities.values_mut() {
+                for entity in entities.iter_mut() {
                     entity_func(&mut **entity)?;
                 }
             }
@@ -350,7 +355,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
 
         // then allow all the entities to observe their neighborhood
         for entities in self.entities.values_mut() {
-            for entity in entities.values_mut() {
+            for entity in entities.iter_mut() {
                 let neighborhood = self.tiles.neighborhood(&**entity);
                 entity.observe(neighborhood)?;
             }
@@ -358,7 +363,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
 
         // then allow the same entities to react to the same neighborhoods
         for entities in self.entities.values_mut() {
-            for entity in entities.values_mut() {
+            for entity in entities.iter_mut() {
                 let neighborhood = self.tiles.neighborhood(&**entity);
                 entity.react(neighborhood)?;
             }
@@ -387,7 +392,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
         let entities = self
             .entities
             .values_mut()
-            .map(|e| e.values_mut())
+            .map(|e| e.iter_mut())
             .flatten()
             .map(|e| &mut **e);
 

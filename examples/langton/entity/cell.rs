@@ -24,7 +24,7 @@ pub struct Cell {
 }
 
 impl Cell {
-    /// Constructs a new Cell with the given ID.
+    /// Constructs a new Cell.
     pub fn new(location: Location, mesh: graphics::Mesh) -> Box<Self> {
         Box::new(Self {
             // IDs are simply randomly generated as the possibility of collisions

@@ -1,3 +1,5 @@
+use std::fmt;
+
 use super::*;
 
 pub use lifespan::*;
@@ -226,3 +228,12 @@ pub type Trait<'e, K, C> = dyn Entity<'e, Kind = K, Context = C> + 'e;
 #[cfg(feature = "parallel")]
 pub type Trait<'e, K, C> =
     dyn Entity<'e, Kind = K, Context = C> + 'e + Send + Sync;
+
+impl<'e, K: fmt::Debug, C> fmt::Debug for Trait<'e, K, C> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Entity")
+            .field("id", &self.id())
+            .field("kind", &self.kind())
+            .finish()
+    }
+}

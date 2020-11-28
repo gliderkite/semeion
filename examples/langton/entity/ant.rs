@@ -33,6 +33,7 @@ enum Direction {
     Down,
 }
 
+#[derive(Debug)]
 pub struct Ant<'a> {
     id: Id,
     direction: Direction,

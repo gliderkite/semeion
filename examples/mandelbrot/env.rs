@@ -17,7 +17,7 @@ pub const SIDE: f32 = 1.0;
 pub const ESCAPE_TIME_LIMIT: u32 = 100;
 
 /// Gets the size of the environment.
-pub fn size() -> Size {
+pub const fn size() -> Size {
     Size {
         width: WIDTH,
         height: HEIGHT,

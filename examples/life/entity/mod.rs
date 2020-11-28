@@ -6,7 +6,7 @@ pub use grid::*;
 
 /// The entities Kinds.
 /// The order of the kind determines the entities drawing order.
-#[derive(PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
 pub enum Kind {
     Grid,
     Cell,

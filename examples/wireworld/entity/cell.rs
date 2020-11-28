@@ -86,7 +86,7 @@ pub struct Cell<'a> {
 }
 
 impl<'a> Cell<'a> {
-    /// Constructs a new Cell with the given ID.
+    /// Constructs a new Cell.
     pub fn new(
         location: Location,
         state: State,
