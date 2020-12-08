@@ -185,6 +185,20 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
         self.tiles.entities_at(location)
     }
 
+    /// Gets an iterator over all the (mutable) entities located at the given
+    /// location.
+    ///
+    /// The entities will be returned in an arbitrary order.
+    /// The Environment is seen as a Torus from this method, therefore, out of
+    /// bounds offsets will be translated considering that the Environment
+    /// edges are joined.
+    pub fn entities_at_mut(
+        &mut self,
+        location: impl Into<Location>,
+    ) -> impl Iterator<Item = &mut entity::Trait<'e, K, C>> {
+        self.tiles.entities_at_mut(location)
+    }
+
     /// Moves forwards to the next generation.
     /// Returns the next generation step number.
     ///

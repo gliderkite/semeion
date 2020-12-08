@@ -75,6 +75,7 @@ impl<'e, K, C> Tiles<'e, K, C> {
     }
 
     /// Gets an iterator over all the entities located at the given location.
+    ///
     /// The Environment is seen as a Torus from this method, therefore, out of
     /// bounds offsets will be translated considering that the Environment
     /// edges are joined.
@@ -82,12 +83,43 @@ impl<'e, K, C> Tiles<'e, K, C> {
         &self,
         location: impl Into<Location>,
     ) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
-        let location = location.into();
-        let index = location.one_dimensional(self.dimension);
-        debug_assert!(index < self.tiles.len());
+        self.tile_at(location.into()).entities()
+    }
+
+    /// Gets an iterator over all the (mutable) entities located at the given
+    /// location.
+    ///
+    /// The Environment is seen as a Torus from this method, therefore, out of
+    /// bounds offsets will be translated considering that the Environment
+    /// edges are joined.
+    pub fn entities_at_mut(
+        &mut self,
+        location: impl Into<Location>,
+    ) -> impl Iterator<Item = &mut entity::Trait<'e, K, C>> {
+        self.tile_at_mut(location.into()).entities_mut()
+    }
+
+    /// Gets the tile at the given location.
+    fn tile_at(&self, location: Location) -> &Tile<'e, K, C> {
+        let index = self.tile_index_at(location);
         let tile = &self.tiles[index];
         debug_assert_eq!(tile.location, location);
-        tile.entities()
+        tile
+    }
+
+    /// Gets the (mutable) tile at the given location.
+    fn tile_at_mut(&mut self, location: Location) -> &mut Tile<'e, K, C> {
+        let index = self.tile_index_at(location);
+        let tile = &mut self.tiles[index];
+        debug_assert_eq!(tile.location, location);
+        tile
+    }
+
+    /// Gets the tile index at the given location.
+    fn tile_index_at(&self, location: Location) -> usize {
+        let index = location.one_dimensional(self.dimension);
+        debug_assert!(index < self.tiles.len());
+        index
     }
 
     /// Gets the area of the environment surrounding the given Entity.
