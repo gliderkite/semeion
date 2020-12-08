@@ -19,16 +19,6 @@ type Entities<'e, K, C> = Vec<Box<entity::Trait<'e, K, C>>>;
 /// Sorted map of all the entities by Kind.
 type EntitiesKinds<'e, K, C> = BTreeMap<K, Entities<'e, K, C>>;
 
-/// Closure over a mutable Entity reference.
-#[cfg(not(feature = "parallel"))]
-type EntityClosure<'e, K, C> =
-    dyn Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error>;
-
-/// Closure over a mutable Entity reference.
-#[cfg(feature = "parallel")]
-type EntityClosure<'e, K, C> =
-    dyn Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error> + Sync;
-
 /// The Environment is a grid, of squared tiles with the same size, where all
 /// the entities belong.
 ///
@@ -196,10 +186,9 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     }
 
     /// Moves forwards to the next generation.
-    /// Returns the current generation step number.
+    /// Returns the next generation step number.
     ///
-    /// Moving to the next generation involves the following actions sorted by
-    /// order:
+    /// Moving to the next generation involves the following actions:
     /// - Calling `Entity::observe(neighborhood)` for each entity with a snapshot
     ///     of the portion of the environment seen by the entity according to its
     ///     scope. The order of the entities called is arbitrary.
@@ -211,20 +200,11 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     ///     environment.
     ///
     /// This method will return an error if any of the calls to `Entity::observe()`
-    /// or `Entity::act()` returns an error, in which case none of the steps that
+    /// or `Entity::react()` returns an error, in which case none of the steps that
     /// involve the update of the environment will take place.
-    pub fn nextgen(&mut self) -> Result<u64, Error> {
-        self.next(Option::<Box<EntityClosure<'e, K, C>>>::None)
-    }
-
-    /// Moves forwards to the next generation.
-    /// Returns the current generation step number.
-    fn next(
-        &mut self,
-        entity_func: Option<Box<EntityClosure<'e, K, C>>>,
-    ) -> Result<u64, Error> {
+    pub fn next(&mut self) -> Result<u64, Error> {
         self.record_location();
-        self.observe_and_react(entity_func)?;
+        self.observe_and_react()?;
         self.update_location();
 
         // take care of newborns entities by inserting them in the environment,
@@ -336,20 +316,8 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// Returns an error if any of the calls to `Entity::observe()`,
     /// `Entity::react()`, or the provided closure returns an error.
     #[cfg(not(feature = "parallel"))]
-    fn observe_and_react(
-        &mut self,
-        entity_func: Option<Box<EntityClosure<'e, K, C>>>,
-    ) -> Result<(), Error> {
-        // if specified, calls the given closure for each entity
-        if let Some(entity_func) = entity_func {
-            for entities in self.entities.values_mut() {
-                for entity in entities.iter_mut() {
-                    entity_func(&mut **entity)?;
-                }
-            }
-        }
-
-        // then allow all the entities to observe their neighborhood
+    fn observe_and_react(&mut self) -> Result<(), Error> {
+        // allow all the entities to observe their neighborhood
         for entities in self.entities.values_mut() {
             for entity in entities.iter_mut() {
                 let neighborhood = self.tiles.neighborhood(&**entity);
@@ -379,10 +347,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// Returns an error if any of the calls to `Entity::observe()`,
     /// `Entity::react()`, or the provided closure returns an error.
     #[cfg(feature = "parallel")]
-    fn observe_and_react(
-        &mut self,
-        entity_func: Option<Box<EntityClosure<'e, K, C>>>,
-    ) -> Result<(), Error> {
+    fn observe_and_react(&mut self) -> Result<(), Error> {
         use rayon::prelude::*;
 
         let entities = self
@@ -399,21 +364,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
 
         let tiles = &self.tiles;
 
-        // if specified, calls the given closure for each entity
-        if let Some(entity_func) = entity_func {
-            sync.par_iter_mut().try_for_each(|entities| {
-                for e in entities.iter_mut() {
-                    entity_func(&mut **e)?;
-                }
-                Ok(())
-            })?;
-
-            for e in &mut unsync {
-                entity_func(&mut **e)?;
-            }
-        }
-
-        // then allow all the entities to observe their neighborhood
+        // allow all the entities to observe their neighborhood
         sync.par_iter_mut().try_for_each(|entities| {
             for e in entities.iter_mut() {
                 let neighborhood = tiles.neighborhood(*e);

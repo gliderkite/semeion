@@ -65,9 +65,7 @@ impl<'a> GameState<'a> {
 impl<'a> event::EventHandler for GameState<'a> {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
         self.visited.borrow_mut().clear();
-        self.env
-            .nextgen()
-            .expect("Cannot move to the next generation");
+        self.env.next().expect("Cannot move to the next generation");
         Ok(())
     }
 

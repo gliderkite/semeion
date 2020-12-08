@@ -77,9 +77,7 @@ impl<'a> event::EventHandler for GameState<'a> {
             }
         }
 
-        self.env
-            .nextgen()
-            .expect("Cannot move to the next generation");
+        self.env.next().expect("Cannot move to the next generation");
 
         // iterate over each pixel to get its current state and its RGBA value
         // that will be pushed into the new image data
