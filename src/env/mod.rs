@@ -170,6 +170,18 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
             .flatten()
     }
 
+    /// Gets an iterator over all the (mutable) entities in the Environment.
+    ///
+    /// The entities will be returned in an arbitrary order.
+    pub fn entities_mut(
+        &mut self,
+    ) -> impl Iterator<Item = &mut entity::Trait<'e, K, C>> {
+        self.entities
+            .values_mut()
+            .map(|e| e.iter_mut().map(|e| &mut **e))
+            .flatten()
+    }
+
     /// Gets an iterator over all the entities located at the given location.
     ///
     /// The entities will be returned in an arbitrary order.
@@ -203,22 +215,6 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// involve the update of the environment will take place.
     pub fn nextgen(&mut self) -> Result<u64, Error> {
         self.next(Option::<Box<EntityClosure<'e, K, C>>>::None)
-    }
-
-    /// Moves forwards to the next generation.
-    /// Returns the current generation step number.
-    ///
-    /// Follows the same semantic of `Environment::nextgen()`, but allows to call
-    /// the provided closure for each Entity in the Environment. The closure
-    /// will be called prior to any other step, allowing to initialize the state
-    /// of each entity.
-    /// Returns an error if any of the calls to the provided closure returns an
-    /// error.
-    pub fn nextgen_with(
-        &mut self,
-        entity_func: Box<EntityClosure<'e, K, C>>,
-    ) -> Result<u64, Error> {
-        self.next(Some(entity_func))
     }
 
     /// Moves forwards to the next generation.

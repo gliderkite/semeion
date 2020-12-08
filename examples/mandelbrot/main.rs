@@ -66,20 +66,19 @@ impl<'a> event::EventHandler for GameState<'a> {
         // compute the state of each pixel after setting the coordinate it
         // represents in the complex plane, according to the current visible
         // plane bounds
-        let plane = self.plane;
+        for e in self.env.entities_mut() {
+            if let (Some(loc), Some(state)) = (e.location(), e.state_mut()) {
+                let state = state
+                    .as_any_mut()
+                    .downcast_mut::<entity::State>()
+                    .expect("Invalid state");
+                let point = env::location_to_point(loc, self.plane);
+                state.set_point(point);
+            }
+        }
+
         self.env
-            .nextgen_with(Box::new(move |e| {
-                if let (Some(loc), Some(state)) = (e.location(), e.state_mut())
-                {
-                    let state = state
-                        .as_any_mut()
-                        .downcast_mut::<entity::State>()
-                        .expect("Invalid state");
-                    let point = env::location_to_point(loc, plane);
-                    state.set_point(point);
-                }
-                Ok(())
-            }))
+            .nextgen()
             .expect("Cannot move to the next generation");
 
         // iterate over each pixel to get its current state and its RGBA value
