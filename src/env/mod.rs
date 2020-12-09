@@ -14,7 +14,7 @@ pub use tile::TileView;
 
 /// Unordered map of entities identified by their IDs, where all the entities
 /// belongs to the same Kind.
-type Entities<'e, K, C> = Vec<Box<entity::Trait<'e, K, C>>>;
+type Entities<'e, K, C> = Vec<Box<EntityTrait<'e, K, C>>>;
 
 /// Sorted map of all the entities by Kind.
 type EntitiesKinds<'e, K, C> = BTreeMap<K, Entities<'e, K, C>>;
@@ -126,7 +126,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     }
 
     /// Inserts the given Entity into the Environment.
-    fn insert_boxed(&mut self, mut entity: Box<entity::Trait<'e, K, C>>) {
+    fn insert_boxed(&mut self, mut entity: Box<EntityTrait<'e, K, C>>) {
         // insert the weak ref in the grid according to the entity location
         self.tiles.insert(&mut *entity);
         // insert the strong ref in the entities map
@@ -179,7 +179,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// Gets an iterator over all the entities in the Environment.
     ///
     /// The entities will be returned in an arbitrary order.
-    pub fn entities(&self) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
+    pub fn entities(&self) -> impl Iterator<Item = &EntityTrait<'e, K, C>> {
         self.entities
             .values()
             .map(|e| e.iter().map(|e| &**e))
@@ -191,7 +191,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// The entities will be returned in an arbitrary order.
     pub fn entities_mut(
         &mut self,
-    ) -> impl Iterator<Item = &mut entity::Trait<'e, K, C>> {
+    ) -> impl Iterator<Item = &mut EntityTrait<'e, K, C>> {
         self.entities
             .values_mut()
             .map(|e| e.iter_mut().map(|e| &mut **e))
@@ -207,7 +207,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     pub fn entities_at(
         &self,
         location: impl Into<Location>,
-    ) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
+    ) -> impl Iterator<Item = &EntityTrait<'e, K, C>> {
         self.tiles.entities_at(location)
     }
 
@@ -221,7 +221,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     pub fn entities_at_mut(
         &mut self,
         location: impl Into<Location>,
-    ) -> impl Iterator<Item = &mut entity::Trait<'e, K, C>> {
+    ) -> impl Iterator<Item = &mut EntityTrait<'e, K, C>> {
         self.tiles.entities_at_mut(location)
     }
 
@@ -304,7 +304,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// in the environment.
     fn populate_with_offspring(&mut self) {
         // gets a list of all the entities offsprings
-        let offspring: Vec<Box<entity::Trait<'e, K, C>>> = self
+        let offspring: Vec<Box<EntityTrait<'e, K, C>>> = self
             .entities
             .values_mut()
             .map(|e| e.iter_mut())

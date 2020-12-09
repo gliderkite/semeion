@@ -57,12 +57,12 @@ pub struct Tasks<'a, 'e, K, C> {
     // which can be run on parallel. These entities do not need to be synchronized
     // between different set (but still need to be synchronized if part of the
     // same set).
-    pub sync: Vec<Vec<&'a mut entity::Trait<'e, K, C>>>,
+    pub sync: Vec<Vec<&'a mut EntityTrait<'e, K, C>>>,
     // The list of entities that cannot be processed in parallel, and that need
     // to wait until all the sync entities have been processed first. These
     // entities need to be synchronized between each other and also with all the
     // other entities belonging to the sync sets.
-    pub unsync: Vec<&'a mut entity::Trait<'e, K, C>>,
+    pub unsync: Vec<&'a mut EntityTrait<'e, K, C>>,
 }
 
 impl Scheduler {
@@ -81,7 +81,7 @@ impl Scheduler {
     /// other entities.
     pub fn get_tasks<'a, 'e, K, C>(
         &self,
-        entities: impl IntoIterator<Item = &'a mut entity::Trait<'e, K, C>>,
+        entities: impl IntoIterator<Item = &'a mut EntityTrait<'e, K, C>>,
     ) -> Tasks<'a, 'e, K, C> {
         debug_assert!(self.jobs > 0);
         if self.jobs == 1 {
@@ -96,7 +96,7 @@ impl Scheduler {
         let mut sync = Vec::new();
         sync.resize_with(
             self.grid.dimension.len(),
-            Vec::<&mut entity::Trait<'e, K, C>>::default,
+            Vec::<&mut EntityTrait<'e, K, C>>::default,
         );
         // list of entities that require synchronization with all the other entities
         let mut unsync = Vec::new();

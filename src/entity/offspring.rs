@@ -3,7 +3,7 @@ use super::*;
 /// The Entity offspring.
 #[derive(Debug)]
 pub struct Offspring<'e, K, C> {
-    entities: Vec<Box<entity::Trait<'e, K, C>>>,
+    entities: Vec<Box<EntityTrait<'e, K, C>>>,
 }
 
 impl<'e, K, C> Default for Offspring<'e, K, C> {
@@ -65,7 +65,7 @@ impl<'e, K, C> Offspring<'e, K, C> {
     }
 
     /// Takes the entities out of the Offspring consuming self.
-    pub(crate) fn take_entities(self) -> Vec<Box<entity::Trait<'e, K, C>>> {
+    pub(crate) fn take_entities(self) -> Vec<Box<EntityTrait<'e, K, C>>> {
         self.entities
     }
 }

@@ -222,14 +222,14 @@ pub trait Entity<'e> {
 
 /// The Entity Trait type alias with explicit lifetime bound.
 #[cfg(not(feature = "parallel"))]
-pub type Trait<'e, K, C> = dyn Entity<'e, Kind = K, Context = C> + 'e;
+pub type EntityTrait<'e, K, C> = dyn Entity<'e, Kind = K, Context = C> + 'e;
 
 /// The Entity Trait type alias with explicit lifetime bound.
 #[cfg(feature = "parallel")]
-pub type Trait<'e, K, C> =
+pub type EntityTrait<'e, K, C> =
     dyn Entity<'e, Kind = K, Context = C> + 'e + Send + Sync;
 
-impl<'e, K: fmt::Debug, C> fmt::Debug for Trait<'e, K, C> {
+impl<'e, K: fmt::Debug, C> fmt::Debug for EntityTrait<'e, K, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Entity")
             .field("id", &self.id())
