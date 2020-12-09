@@ -216,7 +216,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// This method will return an error if any of the calls to `Entity::observe()`
     /// or `Entity::react()` returns an error, in which case none of the steps that
     /// involve the update of the environment will take place.
-    pub fn next(&mut self) -> Result<u64, Error> {
+    pub fn nextgen(&mut self) -> Result<u64, Error> {
         self.record_location();
         self.observe_and_react()?;
         self.update_location();

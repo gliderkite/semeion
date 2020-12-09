@@ -41,7 +41,9 @@ impl<'a> GameState<'a> {
 
 impl<'a> event::EventHandler for GameState<'a> {
     fn update(&mut self, _ctx: &mut ggez::Context) -> GameResult {
-        self.env.next().expect("Cannot move to the next generation");
+        self.env
+            .nextgen()
+            .expect("Cannot move to the next generation");
         Ok(())
     }
 

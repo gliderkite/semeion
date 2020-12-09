@@ -65,7 +65,9 @@ impl<'a> GameState<'a> {
 impl<'a> event::EventHandler for GameState<'a> {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         while timer::check_update_time(ctx, 7) {
-            self.env.next().expect("Cannot move to the next generation");
+            self.env
+                .nextgen()
+                .expect("Cannot move to the next generation");
         }
         Ok(())
     }
