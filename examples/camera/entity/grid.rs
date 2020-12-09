@@ -38,11 +38,11 @@ pub struct Grid {
 
 impl Grid {
     /// Constructs a new grid with the same environment size.
-    pub fn new(mesh: graphics::Mesh) -> Box<Self> {
-        Box::new(Self {
+    pub fn new(mesh: graphics::Mesh) -> Self {
+        Self {
             id: rand::random(),
             mesh,
-        })
+        }
     }
 }
 

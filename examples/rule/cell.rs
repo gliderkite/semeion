@@ -25,8 +25,8 @@ impl<'a> Cell<'a> {
         location: impl Into<Location>,
         state: State,
         context: &'a Context,
-    ) -> Box<Self> {
-        Box::new(Self {
+    ) -> Self {
+        Self {
             // IDs are simply randomly generated as the possibility of collisions
             // are very very low
             id: rand::random(),
@@ -45,7 +45,7 @@ impl<'a> Cell<'a> {
             // new state
             offspring: Offspring::with_capacity(1),
             context,
-        })
+        }
     }
 
     /// Gets the new state of this Cell according to its left and right neighbors,

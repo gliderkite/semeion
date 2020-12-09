@@ -24,8 +24,23 @@ impl<'e, K, C> Offspring<'e, K, C> {
     }
 
     /// Inserts a new Entity into the Offspring.
-    pub fn insert(&mut self, entity: Box<entity::Trait<'e, K, C>>) {
-        self.entities.push(entity);
+    #[cfg(not(feature = "parallel"))]
+    pub fn insert<E>(&mut self, entity: E)
+    where
+        // Trait aliases https://github.com/rust-lang/rust/issues/41517
+        E: Entity<'e, Kind = K, Context = C> + 'e,
+    {
+        self.entities.push(Box::new(entity));
+    }
+
+    /// Inserts a new Entity into the Offspring.
+    #[cfg(feature = "parallel")]
+    pub fn insert<E>(&mut self, entity: E)
+    where
+        // Trait aliases https://github.com/rust-lang/rust/issues/41517
+        E: Entity<'e, Kind = K, Context = C> + 'e + Send + Sync,
+    {
+        self.entities.push(Box::new(entity));
     }
 
     /// Gets the number of entities in the Offspring.

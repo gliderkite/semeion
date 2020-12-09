@@ -25,8 +25,8 @@ pub struct Cell {
 
 impl Cell {
     /// Constructs a new Cell.
-    pub fn new(location: Location, mesh: graphics::Mesh) -> Box<Self> {
-        Box::new(Self {
+    pub fn new(location: Location, mesh: graphics::Mesh) -> Self {
+        Self {
             // IDs are simply randomly generated as the possibility of collisions
             // are very very low
             id: rand::random(),
@@ -34,7 +34,7 @@ impl Cell {
             // the lifespan of a cell is immortal, until killed by the Ant
             lifespan: Lifespan::Immortal,
             mesh,
-        })
+        }
     }
 }
 

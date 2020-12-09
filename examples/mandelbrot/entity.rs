@@ -73,12 +73,12 @@ pub struct Pixel {
 
 impl Pixel {
     /// Constructs a new pixel.
-    pub fn new(id: Id, location: Location) -> Box<Self> {
-        Box::new(Self {
+    pub fn new(id: Id, location: Location) -> Self {
+        Self {
             id,
             state: State::default(),
             location,
-        })
+        }
     }
 }
 

@@ -49,8 +49,8 @@ impl<'a> Ant<'a> {
         location: Location,
         mesh: graphics::Mesh,
         offspring_mesh: graphics::Mesh,
-    ) -> Box<Self> {
-        Box::new(Self {
+    ) -> Self {
+        Self {
             // IDs are simply randomly generated as the possibility of collisions
             // are very very low
             id: rand::random(),
@@ -59,7 +59,7 @@ impl<'a> Ant<'a> {
             location,
             offspring_mesh,
             offspring: Offspring::default(),
-        })
+        }
     }
 
     /// Turn the Ant 90° clockwise and move forwards of one tile.
@@ -130,13 +130,14 @@ impl<'a> Entity<'a> for Ant<'a> {
         // the tile in question can either be BLACK or WHITE, we encode this
         // information with a Cell entity or no entity respectively
         let mut entities = tile.entities_mut();
-        let black_cell = entities.find(|e| e.kind() == Kind::Cell);
+        let cell = entities.find(|e| e.kind() == Kind::Cell);
 
-        if let Some(cell) = black_cell {
+        if let Some(black_cell) = cell {
             // if the cell is BLACK, we flip its color by "killing" the entity
             // reducing its lifespan to 0 and move left
-            debug_assert_eq!(cell.location(), self.location());
-            let lifespan = cell.lifespan_mut().expect("Invalid Cell lifespan");
+            debug_assert_eq!(black_cell.location(), self.location());
+            let lifespan =
+                black_cell.lifespan_mut().expect("Invalid Cell lifespan");
             lifespan.clear();
 
             self.turn_left_and_move_forward();

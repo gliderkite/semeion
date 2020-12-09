@@ -100,7 +100,33 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// environment has been pre-populated the set of entities stored in it will
     /// depend on the behavior of the entities itself (such ad lifespan increase
     /// and decrease, or generated offspring).
-    pub fn insert(&mut self, mut entity: Box<entity::Trait<'e, K, C>>) {
+    #[cfg(not(feature = "parallel"))]
+    pub fn insert<E>(&mut self, entity: E)
+    where
+        // Trait aliases https://github.com/rust-lang/rust/issues/41517
+        E: Entity<'e, Kind = K, Context = C> + 'e,
+    {
+        self.insert_boxed(Box::new(entity));
+    }
+
+    /// Inserts the given Entity into the Environment.
+    ///
+    /// This method is usually used to pre-populate the environment with a set
+    /// of entities that will constitute the first generation. After the
+    /// environment has been pre-populated the set of entities stored in it will
+    /// depend on the behavior of the entities itself (such ad lifespan increase
+    /// and decrease, or generated offspring).
+    #[cfg(feature = "parallel")]
+    pub fn insert<E>(&mut self, entity: E)
+    where
+        // Trait aliases https://github.com/rust-lang/rust/issues/41517
+        E: Entity<'e, Kind = K, Context = C> + 'e + Send + Sync,
+    {
+        self.insert_boxed(Box::new(entity));
+    }
+
+    /// Inserts the given Entity into the Environment.
+    fn insert_boxed(&mut self, mut entity: Box<entity::Trait<'e, K, C>>) {
         // insert the weak ref in the grid according to the entity location
         self.tiles.insert(&mut *entity);
         // insert the strong ref in the entities map
@@ -290,7 +316,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
 
         // collect entities offsprings and insert them in the environment
         for entity in offspring {
-            self.insert(entity);
+            self.insert_boxed(entity);
         }
     }
 

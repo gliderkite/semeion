@@ -87,19 +87,15 @@ pub struct Cell<'a> {
 
 impl<'a> Cell<'a> {
     /// Constructs a new Cell.
-    pub fn new(
-        location: Location,
-        state: State,
-        meshes: &'a Meshes,
-    ) -> Box<Self> {
-        Box::new(Self {
+    pub fn new(location: Location, state: State, meshes: &'a Meshes) -> Self {
+        Self {
             // ID are simply randomly generated as the possibility of collisions
             // are very very low
             id: rand::random(),
             location,
             meshes,
             state: StateSnapshot::new(state),
-        })
+        }
     }
 }
 

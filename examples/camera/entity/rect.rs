@@ -28,13 +28,13 @@ pub struct Rect<'a> {
 
 impl<'a> Rect<'a> {
     /// Constructs a new Rect, with an initial location within the environment.
-    pub fn new(location: Location, mesh: &'a graphics::Mesh) -> Box<Self> {
-        Box::new(Self {
+    pub fn new(location: Location, mesh: &'a graphics::Mesh) -> Self {
+        Self {
             id: rand::random(),
             location,
             angle: 0.0,
             mesh,
-        })
+        }
     }
 }
 
