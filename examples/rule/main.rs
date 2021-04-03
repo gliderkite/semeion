@@ -19,7 +19,7 @@ struct GameState<'a> {
 impl<'a> GameState<'a> {
     /// Constructs the game state by populating the environment with the initial
     /// entities.
-    fn new(context: &'a Context) -> GameResult<Self> {
+    fn new(context: &'a Context) -> Self {
         let mut env = Environment::new(env::dimension());
         debug_assert!(env.is_empty());
 
@@ -35,7 +35,7 @@ impl<'a> GameState<'a> {
             env.insert(Cell::new((x, 0), state, context));
         }
 
-        Ok(Self { env })
+        Self { env }
     }
 }
 
@@ -70,7 +70,7 @@ fn main() -> GameResult {
         .build()?;
 
     let context = Context::new(rule, ctx)?;
-    let state = &mut GameState::new(&context)?;
+    let state = &mut GameState::new(&context);
     event::run(ctx, events_loop, state)?;
     Ok(())
 }

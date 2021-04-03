@@ -42,11 +42,11 @@ impl Meshes {
 impl<'a> GameState<'a> {
     /// Constructs the game state by populating the environment with the initial
     /// entities.
-    fn new() -> Result<Self, GameError> {
+    fn new() -> Self {
         let env = Environment::new(env::dimension());
         debug_assert!(env.is_empty());
 
-        Ok(Self { env })
+        Self { env }
     }
 
     /// Draw stats in the bottom-right corner of the screen.
@@ -97,7 +97,7 @@ fn main() -> GameResult {
 
     // the cached Cell meshes, shared between all cells as immutable reference
     let meshes = Meshes::new(ctx)?;
-    let mut game = GameState::new()?;
+    let mut game = GameState::new();
 
     for (location, state) in Pattern::clock() {
         game.env.insert(Cell::new(location, state, &meshes));

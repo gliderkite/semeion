@@ -29,7 +29,7 @@ struct GameState<'a> {
 impl<'a> GameState<'a> {
     /// Constructs the game state by populating the environment with the initial
     /// entities.
-    fn new() -> Result<Self, GameError> {
+    fn new() -> Self {
         let dimension = env::dimension();
         let mut env = Environment::new(dimension);
         debug_assert!(env.is_empty());
@@ -44,13 +44,13 @@ impl<'a> GameState<'a> {
             }
         }
 
-        Ok(Self {
+        Self {
             env,
             plane: env::Plane::default(),
             zoom_area: None,
             image: Vec::with_capacity(4 * dimension.len()),
             update: true,
-        })
+        }
     }
 }
 
@@ -231,7 +231,7 @@ fn main() -> GameResult {
             )
             .build()?;
 
-    let mut game = GameState::new()?;
+    let mut game = GameState::new();
     event::run(ctx, events_loop, &mut game)?;
     Ok(())
 }

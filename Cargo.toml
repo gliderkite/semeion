@@ -37,5 +37,5 @@ name = "rule"
 
 [dev-dependencies]
 ggez = "0.5"
-num-complex = "0.3"
-rand = "0.7"
+num-complex = "0.4"
+rand = "0.8"
