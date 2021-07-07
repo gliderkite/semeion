@@ -20,7 +20,7 @@ impl<'e, K, C> Tiles<'e, K, C> {
             tiles.push(Tile::new(Location::from_one_dimensional(i, dimension)));
         }
 
-        Self { tiles, dimension }
+        Self { dimension, tiles }
     }
 
     /// Gets the Dimension of the Environment.
