@@ -36,6 +36,6 @@ name = "camera"
 name = "rule"
 
 [dev-dependencies]
-ggez = "0.5"
+ggez = "0.6.0-rc2"
 num-complex = "0.4"
 rand = "0.8"

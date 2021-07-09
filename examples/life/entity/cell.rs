@@ -1,9 +1,9 @@
 use ggez::graphics;
-use ggez::nalgebra::Point2;
+use ggez::mint::Point2;
 use ggez::{Context, GameError};
 use std::cell::RefCell;
 use std::collections::HashSet;
-use std::rc::Weak;
+use std::rc::{Rc, Weak};
 
 use super::Kind;
 use crate::env;
@@ -13,8 +13,8 @@ use semeion::*;
 pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {
     let mut mesh = graphics::MeshBuilder::new();
     let bounds = graphics::Rect::new(0.0, 0.0, env::SIDE, env::SIDE);
-    let color = graphics::BLACK;
-    mesh.rectangle(graphics::DrawMode::fill(), bounds, color);
+    let color = graphics::Color::BLACK;
+    mesh.rectangle(graphics::DrawMode::fill(), bounds, color)?;
     mesh.build(ctx)
 }
 
@@ -24,7 +24,7 @@ pub struct Cell<'a> {
     location: Location,
     lifespan: Lifespan,
     // all the Cells share the same Mesh
-    mesh: &'a graphics::Mesh,
+    mesh: Rc<graphics::Mesh>,
     offspring: Offspring<'a, Kind, Context>,
     visited: Weak<RefCell<HashSet<Location>>>,
 }
@@ -33,7 +33,7 @@ impl<'a> Cell<'a> {
     /// Constructs a new Cell.
     pub fn new(
         location: Location,
-        mesh: &'a graphics::Mesh,
+        mesh: Rc<graphics::Mesh>,
         visited: Weak<RefCell<HashSet<Location>>>,
     ) -> Self {
         Self {
@@ -155,7 +155,7 @@ impl<'a> Entity<'a> for Cell<'a> {
                 // as part of its offspring
                 self.offspring.insert(Cell::new(
                     loc,
-                    self.mesh,
+                    Rc::clone(&self.mesh),
                     Weak::clone(&self.visited),
                 ))
             }
@@ -184,10 +184,13 @@ impl<'a> Entity<'a> for Cell<'a> {
 
         // coordinate in pixels of the top-left corner of the mesh
         let offset = self.location.to_pixel_coords(env::SIDE);
-        let offset = Point2::new(offset.x, offset.y);
+        let offset = Point2 {
+            x: offset.x,
+            y: offset.y,
+        };
 
         let param = graphics::DrawParam::default();
-        graphics::draw(ctx, self.mesh, param.dest(offset))
+        graphics::draw(ctx, &*self.mesh, param.dest(offset))
             .map_err(Error::with_message)
     }
 }

@@ -1,5 +1,5 @@
 use ggez::graphics;
-use ggez::nalgebra::Point2;
+use ggez::mint::Point2;
 use ggez::{Context, GameError};
 
 use super::Kind;
@@ -10,8 +10,8 @@ use semeion::*;
 pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {
     let mut mesh = graphics::MeshBuilder::new();
     let bounds = graphics::Rect::new(0.0, 0.0, env::SIDE, env::SIDE);
-    let color = graphics::BLACK;
-    mesh.rectangle(graphics::DrawMode::fill(), bounds, color);
+    let color = graphics::Color::BLACK;
+    mesh.rectangle(graphics::DrawMode::fill(), bounds, color)?;
     mesh.build(ctx)
 }
 
@@ -76,7 +76,10 @@ impl<'a> Entity<'a> for Cell {
 
         // coordinate in pixels of the top-left corner of the mesh
         let offset = self.location.to_pixel_coords(env::SIDE);
-        let offset = Point2::new(offset.x, offset.y);
+        let offset = Point2 {
+            x: offset.x,
+            y: offset.y,
+        };
 
         let param = graphics::DrawParam::default();
         graphics::draw(ctx, &self.mesh, param.dest(offset))

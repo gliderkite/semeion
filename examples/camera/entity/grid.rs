@@ -1,5 +1,5 @@
 use ggez::graphics;
-use ggez::nalgebra::Point2;
+use ggez::mint::Point2;
 use ggez::{Context, GameError};
 
 use super::Kind;
@@ -12,18 +12,18 @@ pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {
     let size = env::size();
     let dimension = env::dimension();
     let stroke_width = 2.0;
-    let color = graphics::BLACK;
+    let color = graphics::Color::BLACK;
 
     // horizontal lines
     for i in 0..=dimension.y {
         let y = i as f32 * env::SIDE;
-        let points = [Point2::new(0.0, y), Point2::new(size.width, y)];
+        let points = [Point2 { x: 0.0, y }, Point2 { x: size.width, y }];
         mesh.line(&points, stroke_width, color)?;
     }
     // vertical lines
     for i in 0..=dimension.x {
         let x = i as f32 * env::SIDE;
-        let points = [Point2::new(x, 0.0), Point2::new(x, size.height)];
+        let points = [Point2 { x, y: 0.0 }, Point2 { x, y: size.height }];
         mesh.line(&points, stroke_width, color)?;
     }
 
@@ -63,13 +63,12 @@ impl<'a> Entity<'a> for Grid {
         ctx: &mut Self::Context,
         transform: Transform,
     ) -> Result<(), Error> {
-        graphics::push_transform(ctx, Some(transform.to_column_matrix4()));
-        graphics::apply_transformations(ctx).map_err(Error::with_message)?;
-
-        graphics::draw(ctx, &self.mesh, graphics::DrawParam::default())
-            .map_err(Error::with_message)?;
-
-        graphics::pop_transform(ctx);
-        graphics::apply_transformations(ctx).map_err(Error::with_message)
+        graphics::draw(
+            ctx,
+            &self.mesh,
+            graphics::DrawParam::default()
+                .transform(transform.to_column_matrix4()),
+        )
+        .map_err(Error::with_message)
     }
 }

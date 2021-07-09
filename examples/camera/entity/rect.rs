@@ -14,21 +14,21 @@ pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {
     let mut mesh = graphics::MeshBuilder::new();
     let bounds = graphics::Rect::new(0.0, 0.0, ENTITY_SIZE, ENTITY_SIZE);
     let color = graphics::Color::new(1.0, 0.0, 0.0, 1.0);
-    mesh.rectangle(graphics::DrawMode::fill(), bounds, color);
+    mesh.rectangle(graphics::DrawMode::fill(), bounds, color)?;
     mesh.build(ctx)
 }
 
 #[derive(Debug)]
-pub struct Rect<'a> {
+pub struct Rect {
     id: Id,
     location: Location,
     angle: f32,
-    mesh: &'a graphics::Mesh,
+    mesh: graphics::Mesh,
 }
 
-impl<'a> Rect<'a> {
+impl Rect {
     /// Constructs a new Rect, with an initial location within the environment.
-    pub fn new(location: Location, mesh: &'a graphics::Mesh) -> Self {
+    pub fn new(location: Location, mesh: graphics::Mesh) -> Self {
         Self {
             id: rand::random(),
             location,
@@ -38,7 +38,7 @@ impl<'a> Rect<'a> {
     }
 }
 
-impl<'a> Entity<'a> for Rect<'a> {
+impl<'a> Entity<'a> for Rect {
     type Kind = Kind;
     type Context = Context;
 
@@ -74,13 +74,12 @@ impl<'a> Entity<'a> for Rect<'a> {
         transform *= Transform::translate(loc)
             * Transform::rotate_around(self.angle, [half_size, half_size]);
 
-        graphics::push_transform(ctx, Some(transform.to_column_matrix4()));
-        graphics::apply_transformations(ctx).map_err(Error::with_message)?;
-
-        graphics::draw(ctx, self.mesh, graphics::DrawParam::default())
-            .map_err(Error::with_message)?;
-
-        graphics::pop_transform(ctx);
-        graphics::apply_transformations(ctx).map_err(Error::with_message)
+        graphics::draw(
+            ctx,
+            &self.mesh,
+            graphics::DrawParam::default()
+                .transform(transform.to_column_matrix4()),
+        )
+        .map_err(Error::with_message)
     }
 }

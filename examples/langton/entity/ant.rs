@@ -1,5 +1,5 @@
 use ggez::graphics;
-use ggez::nalgebra::{Point2, Vector2};
+use ggez::mint::Point2;
 use ggez::{Context, GameError};
 
 use super::{Cell, Kind};
@@ -9,7 +9,7 @@ use semeion::*;
 /// Constructs a new mesh for the Ant.
 pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {
     let mut mesh = graphics::MeshBuilder::new();
-    let center = Point2::origin();
+    let center = Point2 { x: 0.0, y: 0.0 };
     let tolerance = 1.0;
     let radius = env::SIDE / 2.0;
 
@@ -19,7 +19,7 @@ pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {
         radius,
         tolerance,
         graphics::Color::new(1.0, 0.0, 0.0, 1.0),
-    );
+    )?;
 
     mesh.build(ctx)
 }
@@ -176,9 +176,15 @@ impl<'a> Entity<'a> for Ant<'a> {
         let radius = env::SIDE / 2.0;
         // coordinate in pixels of the top-left corner of the mesh
         let location = self.location.to_pixel_coords(env::SIDE);
-        let location = Point2::new(location.x, location.y);
+        let location = Point2 {
+            x: location.x,
+            y: location.y,
+        };
         // shift the center of the shape to the center of the tile
-        let offset = location + Vector2::new(radius, radius);
+        let offset = Point2 {
+            x: location.x + radius,
+            y: location.y + radius,
+        };
 
         let param = graphics::DrawParam::default();
         graphics::draw(ctx, &self.mesh, param.dest(offset))

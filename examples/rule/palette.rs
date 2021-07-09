@@ -1,4 +1,4 @@
-use ggez::graphics::{Color, BLACK};
+use ggez::graphics::Color;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -14,7 +14,7 @@ impl Palette {
     /// Gets the color associated to the given index.
     pub fn get(&self, index: u64) -> Color {
         let index = index % self.0.len() as u64;
-        *self.0.get(&index).unwrap_or(&BLACK)
+        *self.0.get(&index).unwrap_or(&Color::BLACK)
     }
 
     /// Creates shades from the original color.

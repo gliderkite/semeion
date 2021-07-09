@@ -1,6 +1,7 @@
-use ggez::{graphics, nalgebra::Point2};
+use ggez::{graphics, mint::Point2};
 use semeion::*;
 use std::any::Any;
+use std::rc::Rc;
 
 use crate::{
     context::{Context, Kind},
@@ -16,7 +17,7 @@ pub struct Cell<'a> {
     is_frozen: bool,
     age: u64,
     offspring: Offspring<'a, Kind, ggez::Context>,
-    context: &'a Context,
+    context: Rc<Context>,
 }
 
 impl<'a> Cell<'a> {
@@ -24,7 +25,7 @@ impl<'a> Cell<'a> {
     pub fn new(
         location: impl Into<Location>,
         state: State,
-        context: &'a Context,
+        context: Rc<Context>,
     ) -> Self {
         Self {
             // IDs are simply randomly generated as the possibility of collisions
@@ -143,7 +144,7 @@ impl<'a> Entity<'a> for Cell<'a> {
         // create a new cell just below this one with a state that represents the
         // state this cell will have in the following generation
         let below = *self.location.clone().translate((0, 1), env::dimension());
-        let mut child = Self::new(below, next_state, self.context);
+        let mut child = Self::new(below, next_state, Rc::clone(&self.context));
         if next_state == State::Alive {
             child.age = self.age + 1;
         }
@@ -181,7 +182,10 @@ impl<'a> Entity<'a> for Cell<'a> {
 
         // coordinate in pixels of the top-left corner of the mesh
         let offset = self.location.to_pixel_coords(env::SIDE);
-        let offset = Point2::new(offset.x, offset.y);
+        let offset = Point2 {
+            x: offset.x,
+            y: offset.y,
+        };
 
         // get a new color according to the Cell age
         let color = self.context.palette.get(self.age);

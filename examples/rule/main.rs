@@ -2,6 +2,7 @@
 
 use ggez::*;
 use semeion::*;
+use std::rc::Rc;
 
 use cell::Cell;
 use context::{Context, Kind, Rule};
@@ -19,7 +20,7 @@ struct GameState<'a> {
 impl<'a> GameState<'a> {
     /// Constructs the game state by populating the environment with the initial
     /// entities.
-    fn new(context: &'a Context) -> Self {
+    fn new(context: Rc<Context>) -> Self {
         let mut env = Environment::new(env::dimension());
         debug_assert!(env.is_empty());
 
@@ -32,14 +33,14 @@ impl<'a> GameState<'a> {
             } else {
                 cell::State::Dead
             };
-            env.insert(Cell::new((x, 0), state, context));
+            env.insert(Cell::new((x, 0), state, Rc::clone(&context)));
         }
 
         Self { env }
     }
 }
 
-impl<'a> event::EventHandler for GameState<'a> {
+impl<'a> event::EventHandler<ggez::GameError> for GameState<'a> {
     fn update(&mut self, _ctx: &mut ggez::Context) -> GameResult {
         self.env
             .nextgen()
@@ -64,13 +65,12 @@ fn main() -> GameResult {
     let mut args: Vec<String> = std::env::args().collect();
     let rule: Rule = args.remove(1).parse().expect("Invalid rule");
 
-    let (ctx, events_loop) = &mut ContextBuilder::new("rule", "Marco Conte")
+    let (mut ctx, events_loop) = ContextBuilder::new("rule", "Marco Conte")
         .window_setup(WindowSetup::default().title(&format!("Rule {}!", rule)))
         .window_mode(WindowMode::default().dimensions(env::WIDTH, env::HEIGHT))
         .build()?;
 
-    let context = Context::new(rule, ctx)?;
-    let state = &mut GameState::new(&context);
-    event::run(ctx, events_loop, state)?;
-    Ok(())
+    let context = Context::new(rule, &mut ctx)?;
+    let state = GameState::new(Rc::new(context));
+    event::run(ctx, events_loop, state)
 }

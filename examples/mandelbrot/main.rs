@@ -54,7 +54,7 @@ impl<'a> GameState<'a> {
     }
 }
 
-impl<'a> event::EventHandler for GameState<'a> {
+impl<'a> event::EventHandler<ggez::GameError> for GameState<'a> {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
         if !self.update {
             return Ok(());
@@ -223,15 +223,11 @@ fn main() -> GameResult {
     #[cfg(feature = "parallel")]
     let title = "Mandelbrot Parallel!";
 
-    let (ctx, events_loop) =
-        &mut ContextBuilder::new("mandelbrot", "Marco Conte")
-            .window_setup(WindowSetup::default().title(title))
-            .window_mode(
-                WindowMode::default().dimensions(env::WIDTH, env::HEIGHT),
-            )
-            .build()?;
+    let (ctx, events_loop) = ContextBuilder::new("mandelbrot", "Marco Conte")
+        .window_setup(WindowSetup::default().title(title))
+        .window_mode(WindowMode::default().dimensions(env::WIDTH, env::HEIGHT))
+        .build()?;
 
-    let mut game = GameState::new();
-    event::run(ctx, events_loop, &mut game)?;
-    Ok(())
+    let game = GameState::new();
+    event::run(ctx, events_loop, game)
 }

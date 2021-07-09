@@ -22,16 +22,13 @@ struct GameState<'a> {
 impl<'a> GameState<'a> {
     /// Constructs the game state by populating the environment with the initial
     /// entities.
-    fn new(
-        ctx: &mut Context,
-        rect_mesh: &'a graphics::Mesh,
-    ) -> Result<Self, GameError> {
+    fn new(ctx: &mut Context) -> Result<Self, GameError> {
         let mut env = Environment::new(env::dimension());
         debug_assert!(env.is_empty());
         // a grid as a static entity used only for drawing purposes in order to
         // show the white grid cells borders
         env.insert(Grid::new(grid::mesh(ctx)?));
-        env.insert(Rect::new(env::dimension().center(), rect_mesh));
+        env.insert(Rect::new(env::dimension().center(), rect::mesh(ctx)?));
 
         Ok(Self {
             env,
@@ -43,7 +40,7 @@ impl<'a> GameState<'a> {
     }
 }
 
-impl<'a> event::EventHandler for GameState<'a> {
+impl<'a> event::EventHandler<ggez::GameError> for GameState<'a> {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         while timer::check_update_time(ctx, 10) {
             self.env
@@ -94,14 +91,11 @@ impl<'a> event::EventHandler for GameState<'a> {
 fn main() -> GameResult {
     use ggez::conf::{WindowMode, WindowSetup};
 
-    let (ctx, events_loop) = &mut ContextBuilder::new("camera", "Marco Conte")
+    let (mut ctx, events_loop) = ContextBuilder::new("camera", "Marco Conte")
         .window_setup(WindowSetup::default().title("Camera!"))
         .window_mode(WindowMode::default().dimensions(env::WIDTH, env::HEIGHT))
         .build()?;
 
-    let rect_mesh = rect::mesh(ctx)?;
-
-    let state = &mut GameState::new(ctx, &rect_mesh)?;
-    event::run(ctx, events_loop, state)?;
-    Ok(())
+    let state = GameState::new(&mut ctx)?;
+    event::run(ctx, events_loop, state)
 }
