@@ -1,12 +1,9 @@
-use ggez::graphics;
-use ggez::mint::Point2;
-use ggez::{Context, GameError};
-use std::any::Any;
-use std::rc::Rc;
+use ggez::{graphics, mint::Point2, Context, GameError};
+use semeion::*;
+use std::{any::Any, rc::Rc};
 
 use super::Kind;
 use crate::{env, Meshes};
-use semeion::*;
 
 /// Enumerate each possible cell state (Empty will be encoded as the absence
 /// of the Cell entity in a particular location).

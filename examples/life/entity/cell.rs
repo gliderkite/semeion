@@ -1,13 +1,13 @@
-use ggez::graphics;
-use ggez::mint::Point2;
-use ggez::{Context, GameError};
-use std::cell::RefCell;
-use std::collections::HashSet;
-use std::rc::{Rc, Weak};
+use ggez::{graphics, mint::Point2, Context, GameError};
+use semeion::*;
+use std::{
+    cell::RefCell,
+    collections::HashSet,
+    rc::{Rc, Weak},
+};
 
 use super::Kind;
 use crate::env;
-use semeion::*;
 
 /// Constructs a new mesh for a Cell.
 pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {

@@ -1,10 +1,8 @@
-use ggez::graphics;
-use ggez::mint::Point2;
-use ggez::{Context, GameError};
+use ggez::{graphics, mint::Point2, Context, GameError};
+use semeion::*;
 
 use super::{Cell, Kind};
 use crate::env;
-use semeion::*;
 
 /// Constructs a new mesh for the Ant.
 pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {

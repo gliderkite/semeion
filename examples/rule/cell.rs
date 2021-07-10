@@ -1,7 +1,6 @@
 use ggez::{graphics, mint::Point2};
 use semeion::*;
-use std::any::Any;
-use std::rc::Rc;
+use std::{any::Any, rc::Rc};
 
 use crate::{
     context::{Context, Kind},

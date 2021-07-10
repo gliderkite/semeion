@@ -1,10 +1,8 @@
-use ggez::graphics;
-use ggez::mint::Point2;
-use ggez::{Context, GameError};
+use ggez::{graphics, mint::Point2, Context, GameError};
+use semeion::*;
 
 use super::Kind;
 use crate::env;
-use semeion::*;
 
 /// Constructs a new mesh for a Grid.
 pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {

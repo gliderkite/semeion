@@ -18,9 +18,7 @@
 
 use ggez::*;
 use semeion::*;
-use std::cell::RefCell;
-use std::collections::HashSet;
-use std::rc::Rc;
+use std::{cell::RefCell, collections::HashSet, rc::Rc};
 
 use entity::*;
 use pattern::*;
@@ -51,7 +49,7 @@ impl<'a> GameState<'a> {
 
     /// Draw stats in the bottom-right corner of the screen.
     fn display_stats(&self, ctx: &mut Context) -> GameResult {
-        use ggez::mint::Point2;
+        use mint::Point2;
 
         let text = format!("Generation: {:?}", self.env.generation());
         let foreground = graphics::Color::new(0.1, 0.2, 0.3, 3.0);
@@ -67,7 +65,7 @@ impl<'a> GameState<'a> {
     }
 }
 
-impl<'a> event::EventHandler<ggez::GameError> for GameState<'a> {
+impl<'a> event::EventHandler<GameError> for GameState<'a> {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
         self.visited.borrow_mut().clear();
         self.env
@@ -89,7 +87,7 @@ impl<'a> event::EventHandler<ggez::GameError> for GameState<'a> {
 }
 
 fn main() -> GameResult {
-    use ggez::conf::{WindowMode, WindowSetup};
+    use conf::{WindowMode, WindowSetup};
 
     let (mut ctx, events_loop) = ContextBuilder::new("life", "Marco Conte")
         .window_setup(WindowSetup::default().title("Game of Life!"))

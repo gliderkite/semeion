@@ -1,5 +1,4 @@
-use ggez::graphics;
-use ggez::{Context, GameError};
+use ggez::{graphics, Context, GameError};
 
 use super::Kind;
 use crate::env;

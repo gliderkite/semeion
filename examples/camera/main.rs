@@ -40,7 +40,7 @@ impl<'a> GameState<'a> {
     }
 }
 
-impl<'a> event::EventHandler<ggez::GameError> for GameState<'a> {
+impl<'a> event::EventHandler<GameError> for GameState<'a> {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         while timer::check_update_time(ctx, 10) {
             self.env
@@ -89,7 +89,7 @@ impl<'a> event::EventHandler<ggez::GameError> for GameState<'a> {
 }
 
 fn main() -> GameResult {
-    use ggez::conf::{WindowMode, WindowSetup};
+    use conf::{WindowMode, WindowSetup};
 
     let (mut ctx, events_loop) = ContextBuilder::new("camera", "Marco Conte")
         .window_setup(WindowSetup::default().title("Camera!"))

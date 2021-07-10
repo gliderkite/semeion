@@ -1,9 +1,9 @@
 use ggez::Context;
 use num_complex::Complex;
+use semeion::*;
 use std::any::Any;
 
 use crate::env;
-use semeion::*;
 
 /// The State of each Pixel Entity defines its color from an arbitrary palette
 /// of up to 256 colors.

@@ -1,10 +1,11 @@
 //! https://en.wikipedia.org/wiki/Mandelbrot_set
 
-use ggez::input::keyboard::{KeyCode, KeyMods};
-use ggez::input::mouse::MouseButton;
+use ggez::input::{
+    keyboard::{KeyCode, KeyMods},
+    mouse::MouseButton,
+};
 use ggez::*;
 use num_complex::Complex;
-
 use semeion::*;
 
 mod entity;
@@ -54,7 +55,7 @@ impl<'a> GameState<'a> {
     }
 }
 
-impl<'a> event::EventHandler<ggez::GameError> for GameState<'a> {
+impl<'a> event::EventHandler<GameError> for GameState<'a> {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
         if !self.update {
             return Ok(());
@@ -216,7 +217,7 @@ impl<'a> event::EventHandler<ggez::GameError> for GameState<'a> {
 }
 
 fn main() -> GameResult {
-    use ggez::conf::{WindowMode, WindowSetup};
+    use conf::{WindowMode, WindowSetup};
 
     #[cfg(not(feature = "parallel"))]
     let title = "Mandelbrot!";

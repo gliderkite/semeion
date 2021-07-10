@@ -40,7 +40,7 @@ impl<'a> GameState<'a> {
     }
 }
 
-impl<'a> event::EventHandler<ggez::GameError> for GameState<'a> {
+impl<'a> event::EventHandler<GameError> for GameState<'a> {
     fn update(&mut self, _ctx: &mut ggez::Context) -> GameResult {
         self.env
             .nextgen()
@@ -60,7 +60,7 @@ impl<'a> event::EventHandler<ggez::GameError> for GameState<'a> {
 }
 
 fn main() -> GameResult {
-    use ggez::conf::{WindowMode, WindowSetup};
+    use conf::{WindowMode, WindowSetup};
 
     let mut args: Vec<String> = std::env::args().collect();
     let rule: Rule = args.remove(1).parse().expect("Invalid rule");
