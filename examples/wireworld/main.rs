@@ -2,7 +2,7 @@
 
 use ggez::*;
 use semeion::*;
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use entity::cell::State;
 use entity::*;
@@ -42,27 +42,31 @@ impl Meshes {
 impl<'a> GameState<'a> {
     /// Constructs the game state by populating the environment with the initial
     /// entities.
-    fn new() -> Result<Self, GameError> {
+    fn new() -> Self {
         let env = Environment::new(env::dimension());
         debug_assert!(env.is_empty());
 
-        Ok(Self { env })
+        Self { env }
     }
 
     /// Draw stats in the bottom-right corner of the screen.
     fn display_stats(&self, ctx: &mut Context) -> GameResult {
+        use mint::Point2;
+
         let text = format!("Generation: {:?}", self.env.generation());
-        let foreground = graphics::WHITE;
+        let foreground = graphics::Color::WHITE;
         let fragment = graphics::TextFragment::new(text).color(foreground);
         let text = graphics::Text::new(fragment);
-        use ggez::nalgebra::*;
-        let dest = Point2::new(env::WIDTH - 150.0, env::HEIGHT - 22.0);
-        graphics::draw(ctx, &text, graphics::DrawParam::default().dest(dest))?;
-        Ok(())
+
+        let dest = Point2 {
+            x: env::WIDTH - 150.0,
+            y: env::HEIGHT - 22.0,
+        };
+        graphics::draw(ctx, &text, graphics::DrawParam::default().dest(dest))
     }
 }
 
-impl<'a> event::EventHandler for GameState<'a> {
+impl<'a> event::EventHandler<GameError> for GameState<'a> {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         while timer::check_update_time(ctx, 7) {
             self.env
@@ -73,7 +77,7 @@ impl<'a> event::EventHandler for GameState<'a> {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        graphics::clear(ctx, graphics::BLACK);
+        graphics::clear(ctx, graphics::Color::BLACK);
         self.env
             .draw(ctx, Transform::identity())
             .expect("Cannot draw the environment");
@@ -85,10 +89,10 @@ impl<'a> event::EventHandler for GameState<'a> {
 }
 
 fn main() -> GameResult {
-    use ggez::conf::{WindowMode, WindowSetup};
+    use conf::{WindowMode, WindowSetup};
 
-    let (ctx, events_loop) =
-        &mut ContextBuilder::new("wireworld", "Marco Conte")
+    let (mut ctx, events_loop) =
+        ContextBuilder::new("wireworld", "Marco Conte")
             .window_setup(WindowSetup::default().title("Wireworld!"))
             .window_mode(
                 WindowMode::default().dimensions(env::WIDTH, env::HEIGHT),
@@ -96,13 +100,13 @@ fn main() -> GameResult {
             .build()?;
 
     // the cached Cell meshes, shared between all cells as immutable reference
-    let meshes = Meshes::new(ctx)?;
-    let mut game = GameState::new()?;
+    let meshes = Rc::new(Meshes::new(&mut ctx)?);
+    let mut game = GameState::new();
 
     for (location, state) in Pattern::clock() {
-        game.env.insert(Cell::new(location, state, &meshes));
+        game.env
+            .insert(Cell::new(location, state, Rc::clone(&meshes)));
     }
 
-    event::run(ctx, events_loop, &mut game)?;
-    Ok(())
+    event::run(ctx, events_loop, game)
 }

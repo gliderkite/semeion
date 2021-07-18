@@ -51,7 +51,7 @@ impl Transform {
     }
 
     /// Gets the translation vector.
-    pub fn translation(&self) -> Vector {
+    pub fn translation(self) -> Vector {
         Vector {
             x: self[0][2],
             y: self[1][2],
@@ -89,7 +89,7 @@ impl Transform {
     }
 
     /// Gets the scaling vector.
-    pub fn scaling(&self) -> Vector {
+    pub fn scaling(self) -> Vector {
         Vector {
             x: (self[0][0].powf(2.0) + self[1][0].powf(2.0)).sqrt(),
             y: (self[0][1].powf(2.0) + self[1][1].powf(2.0)).sqrt(),
@@ -126,13 +126,13 @@ impl Transform {
     }
 
     /// Gets the rotation angle in degrees.
-    pub fn rotation(&self) -> f32 {
+    pub fn rotation(self) -> f32 {
         // compute the x skew angle
         180f32 / PI * self[1][1].atan2(self[0][1]) - 90f32
     }
 
     /// Gets the transpose of this matrix.
-    pub fn transpose(&self) -> Self {
+    pub fn transpose(self) -> Self {
         let mut t = Self::zero();
         for i in 0..3 {
             for j in 0..3 {
@@ -143,7 +143,7 @@ impl Transform {
     }
 
     /// Gets the 4x4 row matrix representation of this transformation matrix.
-    pub fn to_row_matrix4(&self) -> [[f32; 4]; 4] {
+    pub fn to_row_matrix4(self) -> [[f32; 4]; 4] {
         let mut matrix = [[0f32; 4]; 4];
 
         matrix[0][0] = self[0][0];
@@ -170,7 +170,7 @@ impl Transform {
     }
 
     /// Gets the 4x4 column matrix representation of this transformation matrix.
-    pub fn to_column_matrix4(&self) -> [[f32; 4]; 4] {
+    pub fn to_column_matrix4(self) -> [[f32; 4]; 4] {
         let mut matrix = [[0f32; 4]; 4];
 
         matrix[0][0] = self[0][0];

@@ -3,7 +3,7 @@ use super::*;
 /// The Entity offspring.
 #[derive(Debug)]
 pub struct Offspring<'e, K, C> {
-    entities: Vec<Box<entity::Trait<'e, K, C>>>,
+    entities: Vec<Box<EntityTrait<'e, K, C>>>,
 }
 
 impl<'e, K, C> Default for Offspring<'e, K, C> {
@@ -24,8 +24,23 @@ impl<'e, K, C> Offspring<'e, K, C> {
     }
 
     /// Inserts a new Entity into the Offspring.
-    pub fn insert(&mut self, entity: Box<entity::Trait<'e, K, C>>) {
-        self.entities.push(entity);
+    #[cfg(not(feature = "parallel"))]
+    pub fn insert<E>(&mut self, entity: E)
+    where
+        // Trait aliases https://github.com/rust-lang/rust/issues/41517
+        E: Entity<'e, Kind = K, Context = C> + 'e,
+    {
+        self.entities.push(Box::new(entity));
+    }
+
+    /// Inserts a new Entity into the Offspring.
+    #[cfg(feature = "parallel")]
+    pub fn insert<E>(&mut self, entity: E)
+    where
+        // Trait aliases https://github.com/rust-lang/rust/issues/41517
+        E: Entity<'e, Kind = K, Context = C> + 'e + Send + Sync,
+    {
+        self.entities.push(Box::new(entity));
     }
 
     /// Gets the number of entities in the Offspring.
@@ -50,7 +65,7 @@ impl<'e, K, C> Offspring<'e, K, C> {
     }
 
     /// Takes the entities out of the Offspring consuming self.
-    pub(crate) fn take_entities(self) -> Vec<Box<entity::Trait<'e, K, C>>> {
+    pub(crate) fn take_entities(self) -> Vec<Box<EntityTrait<'e, K, C>>> {
         self.entities
     }
 }

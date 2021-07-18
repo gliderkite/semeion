@@ -20,7 +20,7 @@ impl<'e, K, C> Tiles<'e, K, C> {
             tiles.push(Tile::new(Location::from_one_dimensional(i, dimension)));
         }
 
-        Self { tiles, dimension }
+        Self { dimension, tiles }
     }
 
     /// Gets the Dimension of the Environment.
@@ -31,13 +31,13 @@ impl<'e, K, C> Tiles<'e, K, C> {
     /// Inserts the given Entity in the grid according to its location. If the
     /// Entity has not location it will not be inserted.
     /// Returns whether the Entity was inserted or not.
-    pub fn insert(&mut self, entity: &mut entity::Trait<'e, K, C>) -> bool {
+    pub fn insert(&mut self, entity: &mut EntityTrait<'e, K, C>) -> bool {
         if let Some(location) = entity.location() {
             let index = location.one_dimensional(self.dimension);
             debug_assert!(index < self.tiles.len());
             let tile = &mut self.tiles[index];
             tile.entities
-                .insert(entity.id(), entity as *mut entity::Trait<'e, K, C>);
+                .insert(entity.id(), entity as *mut EntityTrait<'e, K, C>);
             true
         } else {
             false
@@ -75,19 +75,51 @@ impl<'e, K, C> Tiles<'e, K, C> {
     }
 
     /// Gets an iterator over all the entities located at the given location.
+    ///
     /// The Environment is seen as a Torus from this method, therefore, out of
     /// bounds offsets will be translated considering that the Environment
     /// edges are joined.
     pub fn entities_at(
         &self,
         location: impl Into<Location>,
-    ) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
-        let location = location.into();
-        let index = location.one_dimensional(self.dimension);
-        debug_assert!(index < self.tiles.len());
+    ) -> impl Iterator<Item = &EntityTrait<'e, K, C>> {
+        self.tile_at(location.into()).entities()
+    }
+
+    /// Gets an iterator over all the (mutable) entities located at the given
+    /// location.
+    ///
+    /// The Environment is seen as a Torus from this method, therefore, out of
+    /// bounds offsets will be translated considering that the Environment
+    /// edges are joined.
+    pub fn entities_at_mut(
+        &mut self,
+        location: impl Into<Location>,
+    ) -> impl Iterator<Item = &mut EntityTrait<'e, K, C>> {
+        self.tile_at_mut(location.into()).entities_mut()
+    }
+
+    /// Gets the tile at the given location.
+    fn tile_at(&self, location: Location) -> &Tile<'e, K, C> {
+        let index = self.tile_index_at(location);
         let tile = &self.tiles[index];
         debug_assert_eq!(tile.location, location);
-        tile.entities()
+        tile
+    }
+
+    /// Gets the (mutable) tile at the given location.
+    fn tile_at_mut(&mut self, location: Location) -> &mut Tile<'e, K, C> {
+        let index = self.tile_index_at(location);
+        let tile = &mut self.tiles[index];
+        debug_assert_eq!(tile.location, location);
+        tile
+    }
+
+    /// Gets the tile index at the given location.
+    fn tile_index_at(&self, location: Location) -> usize {
+        let index = location.one_dimensional(self.dimension);
+        debug_assert!(index < self.tiles.len());
+        index
     }
 
     /// Gets the area of the environment surrounding the given Entity.
@@ -96,7 +128,7 @@ impl<'e, K, C> Tiles<'e, K, C> {
     /// dimensions of the Environment being not big enough to contain it.
     pub fn neighborhood(
         &self,
-        entity: &entity::Trait<'e, K, C>,
+        entity: &EntityTrait<'e, K, C>,
     ) -> Option<Neighborhood<'_, 'e, K, C>> {
         match (entity.location(), entity.scope()) {
             // only entities that have both a scope and a location can interact
@@ -141,7 +173,7 @@ pub struct Tile<'e, K, C> {
     // the location of the Tile in the Environment
     location: Location,
     // the entities that currently occupy this Tile
-    entities: HashMap<Id, *mut entity::Trait<'e, K, C>>,
+    entities: HashMap<Id, *mut EntityTrait<'e, K, C>>,
 }
 
 impl<'e, K, C> Tile<'e, K, C> {
@@ -155,7 +187,7 @@ impl<'e, K, C> Tile<'e, K, C> {
 
     /// Gets an iterator over all the entities located in this Tile.
     /// The entities are returned in arbitrary order.
-    pub fn entities(&self) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
+    pub fn entities(&self) -> impl Iterator<Item = &EntityTrait<'e, K, C>> {
         self.entities.iter().filter_map(move |(_id, e)| {
             // Dereferencing the Entity pointer to return its reference
             // is safe because the Environment guarantees that this
@@ -171,7 +203,7 @@ impl<'e, K, C> Tile<'e, K, C> {
     /// The entities are returned in arbitrary order.
     pub fn entities_mut(
         &self,
-    ) -> impl Iterator<Item = &mut entity::Trait<'e, K, C>> {
+    ) -> impl Iterator<Item = &mut EntityTrait<'e, K, C>> {
         self.entities.iter().filter_map(move |(_id, e)| {
             // Dereferencing the Entity pointer to return its reference
             // is safe because the Environment guarantees that this
@@ -204,7 +236,7 @@ impl<'a, 'e, K, C> TileView<'a, 'e, K, C> {
     /// include the Entity that is seeing the tile.
     ///
     /// The entities are returned in arbitrary order.
-    pub fn entities(&self) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
+    pub fn entities(&self) -> impl Iterator<Item = &EntityTrait<'e, K, C>> {
         self.tile.entities().filter(move |e| {
             !matches!(&self.id, Some(entity_id) if entity_id == &e.id())
         })
@@ -216,7 +248,7 @@ impl<'a, 'e, K, C> TileView<'a, 'e, K, C> {
     /// The entities are returned in arbitrary order.
     pub fn entities_mut(
         &mut self,
-    ) -> impl Iterator<Item = &mut entity::Trait<'e, K, C>> {
+    ) -> impl Iterator<Item = &mut EntityTrait<'e, K, C>> {
         let entity_id = self.id;
         self.tile.entities_mut().filter(move |e| {
             !matches!(&entity_id, Some(entity_id) if entity_id == &e.id())

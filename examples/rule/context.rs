@@ -1,5 +1,5 @@
 use ggez::{
-    graphics::{DrawMode, Mesh, MeshBuilder, Rect, WHITE},
+    graphics::{Color, DrawMode, Mesh, MeshBuilder, Rect},
     GameResult,
 };
 
@@ -37,6 +37,6 @@ fn make_cell_mesh(ctx: &mut ggez::Context) -> GameResult<Mesh> {
     let bounds = Rect::new(0.0, 0.0, env::SIDE, env::SIDE);
     // by default the fill color is white so that it will be replaced (blended) by
     // the color retrieved from the palette according to the Cell age
-    mesh.rectangle(DrawMode::fill(), bounds, WHITE);
+    mesh.rectangle(DrawMode::fill(), bounds, Color::WHITE)?;
     mesh.build(ctx)
 }

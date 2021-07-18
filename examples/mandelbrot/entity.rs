@@ -1,9 +1,9 @@
 use ggez::Context;
 use num_complex::Complex;
+use semeion::*;
 use std::any::Any;
 
 use crate::env;
-use semeion::*;
 
 /// The State of each Pixel Entity defines its color from an arbitrary palette
 /// of up to 256 colors.
@@ -73,12 +73,12 @@ pub struct Pixel {
 
 impl Pixel {
     /// Constructs a new pixel.
-    pub fn new(id: Id, location: Location) -> Box<Self> {
-        Box::new(Self {
+    pub fn new(id: Id, location: Location) -> Self {
+        Self {
             id,
             state: State::default(),
             location,
-        })
+        }
     }
 }
 

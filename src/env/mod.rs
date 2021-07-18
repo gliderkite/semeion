@@ -14,20 +14,10 @@ pub use tile::TileView;
 
 /// Unordered map of entities identified by their IDs, where all the entities
 /// belongs to the same Kind.
-type Entities<'e, K, C> = Vec<Box<entity::Trait<'e, K, C>>>;
+type Entities<'e, K, C> = Vec<Box<EntityTrait<'e, K, C>>>;
 
 /// Sorted map of all the entities by Kind.
 type EntitiesKinds<'e, K, C> = BTreeMap<K, Entities<'e, K, C>>;
-
-/// Closure over a mutable Entity reference.
-#[cfg(not(feature = "parallel"))]
-type EntityClosure<'e, K, C> =
-    dyn Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error>;
-
-/// Closure over a mutable Entity reference.
-#[cfg(feature = "parallel")]
-type EntityClosure<'e, K, C> =
-    dyn Fn(&mut entity::Trait<'e, K, C>) -> Result<(), Error> + Sync;
 
 /// The Environment is a grid, of squared tiles with the same size, where all
 /// the entities belong.
@@ -110,7 +100,33 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// environment has been pre-populated the set of entities stored in it will
     /// depend on the behavior of the entities itself (such ad lifespan increase
     /// and decrease, or generated offspring).
-    pub fn insert(&mut self, mut entity: Box<entity::Trait<'e, K, C>>) {
+    #[cfg(not(feature = "parallel"))]
+    pub fn insert<E>(&mut self, entity: E)
+    where
+        // Trait aliases https://github.com/rust-lang/rust/issues/41517
+        E: Entity<'e, Kind = K, Context = C> + 'e,
+    {
+        self.insert_boxed(Box::new(entity));
+    }
+
+    /// Inserts the given Entity into the Environment.
+    ///
+    /// This method is usually used to pre-populate the environment with a set
+    /// of entities that will constitute the first generation. After the
+    /// environment has been pre-populated the set of entities stored in it will
+    /// depend on the behavior of the entities itself (such ad lifespan increase
+    /// and decrease, or generated offspring).
+    #[cfg(feature = "parallel")]
+    pub fn insert<E>(&mut self, entity: E)
+    where
+        // Trait aliases https://github.com/rust-lang/rust/issues/41517
+        E: Entity<'e, Kind = K, Context = C> + 'e + Send + Sync,
+    {
+        self.insert_boxed(Box::new(entity));
+    }
+
+    /// Inserts the given Entity into the Environment.
+    fn insert_boxed(&mut self, mut entity: Box<EntityTrait<'e, K, C>>) {
         // insert the weak ref in the grid according to the entity location
         self.tiles.insert(&mut *entity);
         // insert the strong ref in the entities map
@@ -163,10 +179,22 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// Gets an iterator over all the entities in the Environment.
     ///
     /// The entities will be returned in an arbitrary order.
-    pub fn entities(&self) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
+    pub fn entities(&self) -> impl Iterator<Item = &EntityTrait<'e, K, C>> {
         self.entities
             .values()
             .map(|e| e.iter().map(|e| &**e))
+            .flatten()
+    }
+
+    /// Gets an iterator over all the (mutable) entities in the Environment.
+    ///
+    /// The entities will be returned in an arbitrary order.
+    pub fn entities_mut(
+        &mut self,
+    ) -> impl Iterator<Item = &mut EntityTrait<'e, K, C>> {
+        self.entities
+            .values_mut()
+            .map(|e| e.iter_mut().map(|e| &mut **e))
             .flatten()
     }
 
@@ -179,15 +207,28 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     pub fn entities_at(
         &self,
         location: impl Into<Location>,
-    ) -> impl Iterator<Item = &entity::Trait<'e, K, C>> {
+    ) -> impl Iterator<Item = &EntityTrait<'e, K, C>> {
         self.tiles.entities_at(location)
     }
 
-    /// Moves forwards to the next generation.
-    /// Returns the current generation step number.
+    /// Gets an iterator over all the (mutable) entities located at the given
+    /// location.
     ///
-    /// Moving to the next generation involves the following actions sorted by
-    /// order:
+    /// The entities will be returned in an arbitrary order.
+    /// The Environment is seen as a Torus from this method, therefore, out of
+    /// bounds offsets will be translated considering that the Environment
+    /// edges are joined.
+    pub fn entities_at_mut(
+        &mut self,
+        location: impl Into<Location>,
+    ) -> impl Iterator<Item = &mut EntityTrait<'e, K, C>> {
+        self.tiles.entities_at_mut(location)
+    }
+
+    /// Moves forwards to the next generation.
+    /// Returns the next generation step number.
+    ///
+    /// Moving to the next generation involves the following actions:
     /// - Calling `Entity::observe(neighborhood)` for each entity with a snapshot
     ///     of the portion of the environment seen by the entity according to its
     ///     scope. The order of the entities called is arbitrary.
@@ -199,36 +240,11 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     ///     environment.
     ///
     /// This method will return an error if any of the calls to `Entity::observe()`
-    /// or `Entity::act()` returns an error, in which case none of the steps that
+    /// or `Entity::react()` returns an error, in which case none of the steps that
     /// involve the update of the environment will take place.
     pub fn nextgen(&mut self) -> Result<u64, Error> {
-        self.next(Option::<Box<EntityClosure<'e, K, C>>>::None)
-    }
-
-    /// Moves forwards to the next generation.
-    /// Returns the current generation step number.
-    ///
-    /// Follows the same semantic of `Environment::nextgen()`, but allows to call
-    /// the provided closure for each Entity in the Environment. The closure
-    /// will be called prior to any other step, allowing to initialize the state
-    /// of each entity.
-    /// Returns an error if any of the calls to the provided closure returns an
-    /// error.
-    pub fn nextgen_with(
-        &mut self,
-        entity_func: Box<EntityClosure<'e, K, C>>,
-    ) -> Result<u64, Error> {
-        self.next(Some(entity_func))
-    }
-
-    /// Moves forwards to the next generation.
-    /// Returns the current generation step number.
-    fn next(
-        &mut self,
-        entity_func: Option<Box<EntityClosure<'e, K, C>>>,
-    ) -> Result<u64, Error> {
         self.record_location();
-        self.observe_and_react(entity_func)?;
+        self.observe_and_react()?;
         self.update_location();
 
         // take care of newborns entities by inserting them in the environment,
@@ -288,7 +304,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// in the environment.
     fn populate_with_offspring(&mut self) {
         // gets a list of all the entities offsprings
-        let offspring: Vec<Box<entity::Trait<'e, K, C>>> = self
+        let offspring: Vec<Box<EntityTrait<'e, K, C>>> = self
             .entities
             .values_mut()
             .map(|e| e.iter_mut())
@@ -300,7 +316,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
 
         // collect entities offsprings and insert them in the environment
         for entity in offspring {
-            self.insert(entity);
+            self.insert_boxed(entity);
         }
     }
 
@@ -340,20 +356,8 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// Returns an error if any of the calls to `Entity::observe()`,
     /// `Entity::react()`, or the provided closure returns an error.
     #[cfg(not(feature = "parallel"))]
-    fn observe_and_react(
-        &mut self,
-        entity_func: Option<Box<EntityClosure<'e, K, C>>>,
-    ) -> Result<(), Error> {
-        // if specified, calls the given closure for each entity
-        if let Some(entity_func) = entity_func {
-            for entities in self.entities.values_mut() {
-                for entity in entities.iter_mut() {
-                    entity_func(&mut **entity)?;
-                }
-            }
-        }
-
-        // then allow all the entities to observe their neighborhood
+    fn observe_and_react(&mut self) -> Result<(), Error> {
+        // allow all the entities to observe their neighborhood
         for entities in self.entities.values_mut() {
             for entity in entities.iter_mut() {
                 let neighborhood = self.tiles.neighborhood(&**entity);
@@ -383,10 +387,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
     /// Returns an error if any of the calls to `Entity::observe()`,
     /// `Entity::react()`, or the provided closure returns an error.
     #[cfg(feature = "parallel")]
-    fn observe_and_react(
-        &mut self,
-        entity_func: Option<Box<EntityClosure<'e, K, C>>>,
-    ) -> Result<(), Error> {
+    fn observe_and_react(&mut self) -> Result<(), Error> {
         use rayon::prelude::*;
 
         let entities = self
@@ -403,21 +404,7 @@ impl<'e, K: Ord, C> Environment<'e, K, C> {
 
         let tiles = &self.tiles;
 
-        // if specified, calls the given closure for each entity
-        if let Some(entity_func) = entity_func {
-            sync.par_iter_mut().try_for_each(|entities| {
-                for e in entities.iter_mut() {
-                    entity_func(&mut **e)?;
-                }
-                Ok(())
-            })?;
-
-            for e in &mut unsync {
-                entity_func(&mut **e)?;
-            }
-        }
-
-        // then allow all the entities to observe their neighborhood
+        // allow all the entities to observe their neighborhood
         sync.par_iter_mut().try_for_each(|entities| {
             for e in entities.iter_mut() {
                 let neighborhood = tiles.neighborhood(*e);

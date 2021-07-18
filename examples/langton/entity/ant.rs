@@ -1,15 +1,13 @@
-use ggez::graphics;
-use ggez::nalgebra::{Point2, Vector2};
-use ggez::{Context, GameError};
+use ggez::{graphics, mint::Point2, Context, GameError};
+use semeion::*;
 
 use super::{Cell, Kind};
 use crate::env;
-use semeion::*;
 
 /// Constructs a new mesh for the Ant.
 pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {
     let mut mesh = graphics::MeshBuilder::new();
-    let center = Point2::origin();
+    let center = Point2 { x: 0.0, y: 0.0 };
     let tolerance = 1.0;
     let radius = env::SIDE / 2.0;
 
@@ -19,7 +17,7 @@ pub fn mesh(ctx: &mut Context) -> Result<graphics::Mesh, GameError> {
         radius,
         tolerance,
         graphics::Color::new(1.0, 0.0, 0.0, 1.0),
-    );
+    )?;
 
     mesh.build(ctx)
 }
@@ -49,8 +47,8 @@ impl<'a> Ant<'a> {
         location: Location,
         mesh: graphics::Mesh,
         offspring_mesh: graphics::Mesh,
-    ) -> Box<Self> {
-        Box::new(Self {
+    ) -> Self {
+        Self {
             // IDs are simply randomly generated as the possibility of collisions
             // are very very low
             id: rand::random(),
@@ -59,7 +57,7 @@ impl<'a> Ant<'a> {
             location,
             offspring_mesh,
             offspring: Offspring::default(),
-        })
+        }
     }
 
     /// Turn the Ant 90° clockwise and move forwards of one tile.
@@ -130,13 +128,14 @@ impl<'a> Entity<'a> for Ant<'a> {
         // the tile in question can either be BLACK or WHITE, we encode this
         // information with a Cell entity or no entity respectively
         let mut entities = tile.entities_mut();
-        let black_cell = entities.find(|e| e.kind() == Kind::Cell);
+        let cell = entities.find(|e| e.kind() == Kind::Cell);
 
-        if let Some(cell) = black_cell {
+        if let Some(black_cell) = cell {
             // if the cell is BLACK, we flip its color by "killing" the entity
             // reducing its lifespan to 0 and move left
-            debug_assert_eq!(cell.location(), self.location());
-            let lifespan = cell.lifespan_mut().expect("Invalid Cell lifespan");
+            debug_assert_eq!(black_cell.location(), self.location());
+            let lifespan =
+                black_cell.lifespan_mut().expect("Invalid Cell lifespan");
             lifespan.clear();
 
             self.turn_left_and_move_forward();
@@ -175,9 +174,15 @@ impl<'a> Entity<'a> for Ant<'a> {
         let radius = env::SIDE / 2.0;
         // coordinate in pixels of the top-left corner of the mesh
         let location = self.location.to_pixel_coords(env::SIDE);
-        let location = Point2::new(location.x, location.y);
+        let location = Point2 {
+            x: location.x,
+            y: location.y,
+        };
         // shift the center of the shape to the center of the tile
-        let offset = location + Vector2::new(radius, radius);
+        let offset = Point2 {
+            x: location.x + radius,
+            y: location.y + radius,
+        };
 
         let param = graphics::DrawParam::default();
         graphics::draw(ctx, &self.mesh, param.dest(offset))

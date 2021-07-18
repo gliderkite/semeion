@@ -1,10 +1,11 @@
 //! https://en.wikipedia.org/wiki/Mandelbrot_set
 
-use ggez::input::keyboard::{KeyCode, KeyMods};
-use ggez::input::mouse::MouseButton;
+use ggez::input::{
+    keyboard::{KeyCode, KeyMods},
+    mouse::MouseButton,
+};
 use ggez::*;
 use num_complex::Complex;
-
 use semeion::*;
 
 mod entity;
@@ -29,7 +30,7 @@ struct GameState<'a> {
 impl<'a> GameState<'a> {
     /// Constructs the game state by populating the environment with the initial
     /// entities.
-    fn new() -> Result<Self, GameError> {
+    fn new() -> Self {
         let dimension = env::dimension();
         let mut env = Environment::new(dimension);
         debug_assert!(env.is_empty());
@@ -44,17 +45,17 @@ impl<'a> GameState<'a> {
             }
         }
 
-        Ok(Self {
+        Self {
             env,
             plane: env::Plane::default(),
             zoom_area: None,
             image: Vec::with_capacity(4 * dimension.len()),
             update: true,
-        })
+        }
     }
 }
 
-impl<'a> event::EventHandler for GameState<'a> {
+impl<'a> event::EventHandler<GameError> for GameState<'a> {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
         if !self.update {
             return Ok(());
@@ -66,20 +67,19 @@ impl<'a> event::EventHandler for GameState<'a> {
         // compute the state of each pixel after setting the coordinate it
         // represents in the complex plane, according to the current visible
         // plane bounds
-        let plane = self.plane;
+        for e in self.env.entities_mut() {
+            if let (Some(loc), Some(state)) = (e.location(), e.state_mut()) {
+                let state = state
+                    .as_any_mut()
+                    .downcast_mut::<entity::State>()
+                    .expect("Invalid state");
+                let point = env::location_to_point(loc, self.plane);
+                state.set_point(point);
+            }
+        }
+
         self.env
-            .nextgen_with(Box::new(move |e| {
-                if let (Some(loc), Some(state)) = (e.location(), e.state_mut())
-                {
-                    let state = state
-                        .as_any_mut()
-                        .downcast_mut::<entity::State>()
-                        .expect("Invalid state");
-                    let point = env::location_to_point(loc, plane);
-                    state.set_point(point);
-                }
-                Ok(())
-            }))
+            .nextgen()
             .expect("Cannot move to the next generation");
 
         // iterate over each pixel to get its current state and its RGBA value
@@ -217,22 +217,18 @@ impl<'a> event::EventHandler for GameState<'a> {
 }
 
 fn main() -> GameResult {
-    use ggez::conf::{WindowMode, WindowSetup};
+    use conf::{WindowMode, WindowSetup};
 
     #[cfg(not(feature = "parallel"))]
     let title = "Mandelbrot!";
     #[cfg(feature = "parallel")]
     let title = "Mandelbrot Parallel!";
 
-    let (ctx, events_loop) =
-        &mut ContextBuilder::new("mandelbrot", "Marco Conte")
-            .window_setup(WindowSetup::default().title(title))
-            .window_mode(
-                WindowMode::default().dimensions(env::WIDTH, env::HEIGHT),
-            )
-            .build()?;
+    let (ctx, events_loop) = ContextBuilder::new("mandelbrot", "Marco Conte")
+        .window_setup(WindowSetup::default().title(title))
+        .window_mode(WindowMode::default().dimensions(env::WIDTH, env::HEIGHT))
+        .build()?;
 
-    let mut game = GameState::new()?;
-    event::run(ctx, events_loop, &mut game)?;
-    Ok(())
+    let game = GameState::new();
+    event::run(ctx, events_loop, game)
 }

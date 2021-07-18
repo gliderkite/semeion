@@ -18,9 +18,7 @@
 
 use ggez::*;
 use semeion::*;
-use std::cell::RefCell;
-use std::collections::HashSet;
-use std::rc::Rc;
+use std::{cell::RefCell, collections::HashSet, rc::Rc};
 
 use entity::*;
 use pattern::*;
@@ -39,30 +37,35 @@ struct GameState<'a> {
 impl<'a> GameState<'a> {
     /// Constructs the game state by populating the environment with the initial
     /// entities.
-    fn new() -> Result<Self, GameError> {
+    fn new() -> Self {
         let env = Environment::new(env::dimension());
         debug_assert!(env.is_empty());
 
-        Ok(Self {
+        Self {
             env,
             visited: Rc::new(RefCell::new(HashSet::new())),
-        })
+        }
     }
 
     /// Draw stats in the bottom-right corner of the screen.
     fn display_stats(&self, ctx: &mut Context) -> GameResult {
+        use mint::Point2;
+
         let text = format!("Generation: {:?}", self.env.generation());
         let foreground = graphics::Color::new(0.1, 0.2, 0.3, 3.0);
         let fragment = graphics::TextFragment::new(text).color(foreground);
         let text = graphics::Text::new(fragment);
-        use ggez::nalgebra::*;
-        let dest = Point2::new(env::WIDTH - 150.0, env::HEIGHT - 22.0);
+
+        let dest = Point2 {
+            x: env::WIDTH - 150.0,
+            y: env::HEIGHT - 22.0,
+        };
         graphics::draw(ctx, &text, graphics::DrawParam::default().dest(dest))?;
         Ok(())
     }
 }
 
-impl<'a> event::EventHandler for GameState<'a> {
+impl<'a> event::EventHandler<GameError> for GameState<'a> {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
         self.visited.borrow_mut().clear();
         self.env
@@ -84,27 +87,23 @@ impl<'a> event::EventHandler for GameState<'a> {
 }
 
 fn main() -> GameResult {
-    use ggez::conf::{WindowMode, WindowSetup};
+    use conf::{WindowMode, WindowSetup};
 
-    let (ctx, events_loop) = &mut ContextBuilder::new("life", "Marco Conte")
+    let (mut ctx, events_loop) = ContextBuilder::new("life", "Marco Conte")
         .window_setup(WindowSetup::default().title("Game of Life!"))
         .window_mode(WindowMode::default().dimensions(env::WIDTH, env::HEIGHT))
         .build()?;
 
-    // the cached Cell mesh, shared between all cells as immutable reference
-    let cell_mesh = cell::mesh(ctx)?;
-
-    let mut game = GameState::new()?;
-    game.env.insert(Grid::new(grid::mesh(ctx)?));
+    let mut game = GameState::new();
+    game.env.insert(Grid::new(grid::mesh(&mut ctx)?));
 
     for location in Pattern::acorn() {
         game.env.insert(Cell::new(
             location,
-            &cell_mesh,
+            Rc::new(cell::mesh(&mut ctx)?),
             Rc::downgrade(&game.visited),
         ));
     }
 
-    event::run(ctx, events_loop, &mut game)?;
-    Ok(())
+    event::run(ctx, events_loop, game)
 }
