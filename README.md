@@ -40,11 +40,11 @@ For these situations, it is possible to gain significant advantage by spawning
 multiple threads and running the simulation in parallel (profiling your code is
 always advised before taking final decisions).
 
-At the moment, you can enable this feature only at compile time, by specifying
-the optional feature `parallel` in your `Cargo.toml`:
+At the moment, you can enable this (non *additive*) feature only at compile time,
+by specifying the optional feature `parallel` in your `Cargo.toml`:
 
 ```toml
-semeion = { version = "0.8", features = ["parallel"] }
+semeion = { version = "0.9", features = ["parallel"] }
 ```
 
 The only requirement is that all your entities need to be

@@ -1,8 +1,8 @@
 [package]
 name = "semeion"
-version = "0.9.0"
+version = "0.9.1"
 authors = ["Marco Conte <gliderkite@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "A generic 2D environment simulator"
 readme = "README.md"
 repository = "https://github.com/gliderkite/semeion"
@@ -36,6 +36,6 @@ name = "camera"
 name = "rule"
 
 [dev-dependencies]
-ggez = "0.6"
+ggez = "0.7"
 num-complex = "0.4"
 rand = "0.8"
